@@ -1,0 +1,31 @@
+{
+  "name": "uibench-stage0",
+  "version": "1.0.0",
+  "description": "UIBench stage0 demo",
+  "main": "dist/app.min.js",
+  "scripts": {
+    "build-dev": "rollup -c -w",
+    "build-prod": "rollup -c",
+    "start": "ws"
+  },
+  "keywords": [
+    "stage0"
+  ],
+  "author": "Pavel Martynov",
+  "dependencies": {
+    "local-web-server": "^2.6.0",
+    "stage0": "0.0.3"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-plugin-external-helpers": "^6.22.0",
+    "babel-preset-es2016": "^6.24.1",
+    "rollup": "^0.58.2",
+    "rollup-plugin-babel": "^3.0.4",
+    "rollup-plugin-minifyliterals": "^1.1.0",
+    "rollup-plugin-node-resolve": "^3.3.0",
+    "rollup-plugin-terser": "^1.0.1",
+    "rollup-plugin-uglify": "^3.0.0",
+    "uglify-es": "^3.3.9"
+  }
+}
