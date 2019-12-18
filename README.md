@@ -6,8 +6,7 @@ clone & customized stage0 for better developer experiments
 ## TODO LIST
 1. change styles.js 
     - makeId and apply selector logic
-    - we things about composition
-        -
+    - we things about composition for css or style
 2. change index.js
     > remake for auto marking use with template literals
     > auto bind mutation dom type
@@ -15,4 +14,4 @@ clone & customized stage0 for better developer experiments
 
 ## License
 [stage0 License](https://github.com/Freak613/stage0/blob/master/LICENSE)
-[rolled License]()
+[rolled License](https://github.com/CreeJee/rolled/blob/master/LICENSE)
