@@ -1,4 +1,4 @@
-import { noOpUpdate, longestPositiveIncreasingSubsequence } from './utils';
+import { noOpUpdate, longestPositiveIncreasingSubsequence } from './utils.js';
 
 // This is almost straightforward implementation of reconcillation algorithm
 // based on ivi documentation:

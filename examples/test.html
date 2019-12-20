@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>rolled - test</title>
+</head>
+<body>
+    <script type="module">
+        import {fragment, h} from '/index.js';
+        import reconcile from '/reconcile.js';
+        import keyed from '/keyed.js'
+        const itemView = h`
+            <table>
+                <tbody>
+                    <tr #ref>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+        const itemGroup = fragment`
+            <td>#name</td>
+            <td>#id</td>
+        `;
+        const createItem = (item) => {
+            const root = itemGroup.cloneNode(true);
+            const childNodes = root.childNodes;
+            const childSize = childNodes.length;
+            const update = (old, view) => function (item) {
+                const collector = view.collect(this);
+                for (const key in collector) {
+                    const current = item[key];
+                    if (current !== old[key]) {
+                        collector[key].nodeValue = current;
+                    }  
+                }
+            }
+            for (let index = 0; index < childSize; index++) {
+                const node = childNodes[index];
+                const view = itemGroup.childNodes[index];
+                node.update = update(item, view);
+                update({}, view).call(node, item);
+            }
+            return root;
+        }
+        const factory = (view) => {
+            const data = [
+                {name: 'o', id: 1},
+                {name: 'k', id: 2}
+            ];
+            const {ref} = view.collect(view);
+            let renderedItems = []
+            
+            view.update = function(data) {
+                reconcile(
+                    ref,
+                    renderedItems,
+                    data,
+                    item => createItem(item),
+                    (node, item) => node.update(item),
+                )
+                renderedItems = data.slice()
+            }
+            view.update(data)
+            return view;
+        };
+        const mainRoot = factory(itemView);
+        document.body.appendChild(mainRoot);
+        setTimeout(()=>{
+            mainRoot.update([
+                {name: 'o', id: 1},
+                {name: 'b', id: 2}
+            ])
+        },3000)
+    </script>
+</body>
+</html>

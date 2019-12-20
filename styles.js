@@ -1,19 +1,19 @@
 
 const styleElement = document.createElement('style');
-styleElement.id = 'stage0';
-document.head.appendChild(styleElement)
 const styleSheet = styleElement.sheet;
+styleElement.id = 'rolled-style';
+document.head.appendChild(styleElement)
 
-function makeid() {
-    const {possible, n} = makeid
-    let alphaHex = n.toString(26).split(''), c, r = ''
-    while(c = alphaHex.shift()) r += possible[parseInt(c, 26)]
-    makeid.n++
-    return r
-};
+// function makeid() {
+//     const {possible, n} = makeid
+//     let alphaHex = n.toString(26).split(''), c, r = ''
+//     while(c = alphaHex.shift()) r += possible[parseInt(c, 26)]
+//     makeid.n++
+//     return r
+// };
 
-makeid.possible = "abcdefghijklmnopqrstuvwxyz"
-makeid.n = 0;
+// makeid.possible = "abcdefghijklmnopqrstuvwxyz"
+// makeid.n = 0;
 
 
 // why using css class like ID? 
@@ -38,9 +38,9 @@ export function styles(stylesObj) {
         
         Object.assign(ruleStyle, classStyles);
         // well...? it does not need :)
-        // stylesObj[selector] = genClass
+        stylesObj[selector] = genClass
     }
-    return undefined;
+    return stylesObj;
 }
 // TODO : return 맞추기
 export function keyframes(framesObj) {
@@ -59,7 +59,7 @@ export function keyframes(framesObj) {
             Object.assign(frameStyle, frames[percent])
         }
     }
-    return undefined;
+    return framesObj;
 }
 
 export default styles

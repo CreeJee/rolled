@@ -1,5 +1,13 @@
+class Ref {
+  constructor(idx, ref) {
+    this.idx = idx;
+    this.ref = ref;
+  }
+}
 
-function collector(node) {
+const TREE_WALKER = document.createTreeWalker(document, NodeFilter.SHOW_ALL, null, false);
+const compilerTemplate = document.createElement('template');
+const collector = (node) => {
   if (node.nodeType !== 3) {
     if (node.attributes !== undefined) {
       for(let attr of Array.from(node.attributes)) {
@@ -20,21 +28,7 @@ function collector(node) {
     return 0
   }
 }
-
-const TREE_WALKER = document.createTreeWalker(document, NodeFilter.SHOW_ALL, null, false)
-TREE_WALKER.roll = function(n) {
-  while(--n) this.nextNode()
-  return this.currentNode
-}
-
-class Ref {
-  constructor(idx, ref) {
-    this.idx = idx
-    this.ref = ref
-  }
-}
-
-function genPath(node) {
+const genPath = (node) => {
   const w = TREE_WALKER
   w.currentNode = node
 
@@ -51,32 +45,71 @@ function genPath(node) {
   return indices
 }
 
+TREE_WALKER.roll = function(n) {
+  while(--n) this.nextNode()
+  return this.currentNode
+}
+
+
 function walker(node) {
   const refs = {}
-
   const w = TREE_WALKER
-  w.currentNode = node
 
-  this._refPaths.map(x => refs[x.ref] = w.roll(x.idx))
-
-  return refs
+  w.currentNode = node;
+  this._refPaths.map(x => refs[x.ref] = w.roll(x.idx));  
+  return refs;
 }
-
-export function compile(node) {
-    node._refPaths = genPath(node)
-    node.collect = walker
-}
-
-const compilerTemplate = document.createElement('template')
-export function h(strings, ...args) {
+export const extractFragment = (strings, ...args) =>{
   const template = String.raw(strings, ...args)
     .replace(/>\n+/g, '>')
     .replace(/\s+</g, '<')
     .replace(/>\s+/g, '>')
     .replace(/\n\s+/g, '<!-- -->')
-  compilerTemplate.innerHTML = template
-  const content = compilerTemplate.content.firstChild
-  compile(content)
-  return content
+  compilerTemplate.innerHTML = template;
+  return compilerTemplate.content;
 }
-export default h
+export const compile = (node) => {
+    node._refPaths = genPath(node)
+    node.collect = walker
+}
+export const h = (strings, ...args) => {
+  const content = extractFragment(strings, ...args).firstChild
+  compile(content)
+  return content;
+}
+//Fragment
+const getSelfPath = (node) => {
+  const w = TREE_WALKER
+  const parent = node.parentNode;
+  const siblings = parent !== null ? Array.from(parent.childNodes) : [];
+  
+  let current = node;
+  w.currentNode = node
+
+  let indices = [], ref, idx = 0
+  do {
+    if (ref = collector(current)) {
+      indices.push(new Ref(idx+1, ref))
+      idx = 1
+    } else {
+      idx++
+    }
+    if (node !== current && siblings.includes(current)) {
+      break;
+    }
+  } while(current = w.nextNode())
+
+  return indices
+}
+export const fragmentCompile = (node) => {
+  for (const self of node.childNodes) {
+    self._refPaths = getSelfPath(self);
+    self.collect = walker
+  }
+}
+export const fragment = (strings, ...args) => {
+  const content = extractFragment(strings, ...args)
+  fragmentCompile(content);
+  return content;
+}
+export default h;
