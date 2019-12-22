@@ -6,7 +6,7 @@
   "scripts": {
     "build-prod": "rollup -c"
   },
-  "author": "CreeJee <000as00060@gmail.com>",
+  "author": "Pavel Martynov <martynov.pl@gmail.com>/CreeJee <000as00060@gmail.com>",
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "7.4.5",
