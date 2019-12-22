@@ -12,7 +12,7 @@ clone & customized stage0 for better developer experiments
     - [ ] we things about composition for css or style
 2. change index.js
     - [ ] remake for auto collect use with template literals
-      - [ ] reject (cause of cost)
+      - [x] reject (cause of cost)
     - [ ] auto bind mutation event (ex : reconcile);
     - [x] support fragment (use documentFragment)
         - [x] reconcile, keyed support
@@ -51,5 +51,7 @@ full contents in '/examples/test.html'
 ```
 
 ## License
+
 [stage0 License](https://github.com/Freak613/stage0/blob/master/LICENSE)
+
 [rolled License](https://github.com/CreeJee/rolled/blob/master/LICENSE)
