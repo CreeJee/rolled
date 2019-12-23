@@ -16,6 +16,8 @@ clone & customized stage0 for better developer experiments
     - [ ] auto bind mutation event (ex : reconcile);
     - [x] support fragment (use documentFragment)
         - [x] reconcile, keyed support
+3. change syntheticEvents 
+   - [ ] support event queue
 ## doc
 
 ### fragment
