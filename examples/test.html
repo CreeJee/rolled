@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>rolled - test</title>
-</head>
-<body>
-    <script type="module">
-        import {fragment, h} from '/index.js';
-        import reconcile from '/reconcile.js';
-        import keyed from '/keyed.js'
-        const itemView = h`
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <title>rolled - test</title>
+    </head>
+    <body>
+        <script type="module">
+            import { fragment, h } from "/index.js";
+            import reconcile from "/reconcile.js";
+            import keyed from "/keyed.js";
+            const itemView = h`
             <table>
                 <tbody>
                     <tr #ref>
@@ -19,60 +19,76 @@
                 </tbody>
             </table>
         `;
-        const itemGroup = fragment`
+            const itemGroup = fragment`
             <td>#name</td>
             <td>#id</td>
         `;
-        const createItem = (item) => {
-            const root = itemGroup.cloneNode(true);
-            const childNodes = root.childNodes;
-            const childSize = childNodes.length;
-            const update = (old, view) => function (item) {
-                const collector = view.collect(this);
-                for (const key in collector) {
-                    const current = item[key];
-                    if (current !== old[key]) {
-                        collector[key].nodeValue = current;
-                    }  
+
+            const update = (old, view) =>
+                function __nestedUpdate__(item) {
+                    const collector = view.collect(this);
+                    for (const key in collector) {
+                        const current = item[key];
+                        if (current !== old[key]) {
+                            collector[key].nodeValue = current;
+                        }
+                    }
+                };
+            const createItem = (item) => {
+                const root = itemGroup.cloneNode(true);
+                let rootChild = root.firstChild;
+                let itemChild = itemGroup.firstChild;
+                let nth = 0;
+                if (rootChild === null || itemChild === null) {
+                    return root;
                 }
-            }
-            for (let index = 0; index < childSize; index++) {
-                const node = childNodes[index];
-                const view = itemGroup.childNodes[index];
-                node.update = update(item, view);
-                update({}, view).call(node, item);
-            }
-            return root;
-        }
-        const factory = (view) => {
-            const data = [
-                {name: 'o', id: 1},
-                {name: 'k', id: 2}
-            ];
-            const {ref} = view.collect(view);
-            let renderedItems = []
-            
-            view.update = function(data) {
-                reconcile(
-                    ref,
-                    renderedItems,
-                    data,
-                    item => createItem(item),
-                    (node, item) => node.update(item),
-                )
-                renderedItems = data.slice()
-            }
-            view.update(data)
-            return view;
-        };
-        const mainRoot = factory(itemView);
-        document.body.appendChild(mainRoot);
-        setTimeout(()=>{
-            mainRoot.update([
-                {name: 'o', id: 1},
-                {name: 'b', id: 2}
-            ])
-        },3000)
-    </script>
-</body>
+                do {
+                    rootChild.update = update(item, itemChild);
+                    update({}, itemChild).call(rootChild, item);
+                } while (
+                    (rootChild = rootChild.nextSibling) &&
+                    (itemChild = itemChild.nextSibling)
+                );
+
+                // const childNodes = root.childNodes;
+                // const childSize = childNodes.length;
+                // for (let index = 0; index < childSize; index++) {
+                //     const node = childNodes[index];
+                //     const view = itemGroup.childNodes[index];
+                //     node.update = update(item, view);
+                //     update({}, view).call(node, item);
+                // }
+                return root;
+            };
+            const factory = (view) => {
+                const data = [
+                    { name: "o", id: 1 },
+                    { name: "k", id: 2 }
+                ];
+                const { ref } = view.collect(view);
+                let renderedItems = [];
+
+                view.update = function(data) {
+                    reconcile(
+                        ref,
+                        renderedItems,
+                        data,
+                        (item) => createItem(item),
+                        (node, item) => node.update(item)
+                    );
+                    renderedItems = data.slice();
+                };
+                view.update(data);
+                return view;
+            };
+            const mainRoot = factory(itemView);
+            document.body.appendChild(mainRoot);
+            setTimeout(() => {
+                mainRoot.update([
+                    { name: "o", id: 1 },
+                    { name: "b", id: 2 }
+                ]);
+            }, 3000);
+        </script>
+    </body>
 </html>
