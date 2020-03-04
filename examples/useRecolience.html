@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <title>rolled - test</title>
+    </head>
+    <body>
+        <script type="module">
+            import { fragment, h } from "/index.js";
+            // import reconcile from "/reconcile.js";
+            // import keyed from "/keyed.js";
+            import { create, useEffect } from "/hook/reconcile.js";
+            const itemView = h`
+            <table>
+                <tbody>
+                    <tr #ref>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+            const child = () => {
+                useEffect(() => {});
+                return fragment`
+                    <td>#name</td>
+                    <td>#id</td>
+                `;
+            };
+            const mainRoot = create(itemView, child);
+            mainRoot.update([
+                { name: "o", id: 1 },
+                { name: "k", id: 2 }
+            ]);
+            document.body.appendChild(mainRoot);
+            setTimeout(() => {
+                mainRoot.update([
+                    { name: "o", id: 1 },
+                    { name: "b", id: 2 }
+                ]);
+            }, 3000);
+        </script>
+    </body>
+</html>
