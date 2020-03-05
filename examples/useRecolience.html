@@ -11,7 +11,7 @@
             import { fragment, h } from "/index.js";
             // import reconcile from "/reconcile.js";
             // import keyed from "/keyed.js";
-            import { create, useEffect } from "/hook/reconcile.js";
+            import { create } from "/hook/reconcile.js";
             const itemView = h`
             <table>
                 <tbody>
@@ -20,8 +20,9 @@
                 </tbody>
             </table>
         `;
-            const child = () => {
-                useEffect(() => {});
+            const child = ({ useState, useEffect }) => {
+                const [number, setNumber] = useState(1);
+                debugger;
                 return fragment`
                     <td>#name</td>
                     <td>#id</td>

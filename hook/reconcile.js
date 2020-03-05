@@ -1,4 +1,5 @@
 import { reconcile } from "../base/reconcile.js";
+import { bindHook } from "./basic.js";
 class ReconcileGenError extends Error {
     constructor(msg) {
         super(msg);
@@ -45,8 +46,6 @@ const createItem = (item, itemGroup, isUpdate, onUpdate) => {
     }
     return root;
 };
-// child는 function hook함수 자체를 재정의 하지않는다는게 컨밴션임 ㅇㅇ
-// 그에따라 관련값은 caller에 저장하고 로직을 진행함
 
 export const create = (view, component) => {
     const { ref } = view.collect(view);
@@ -58,7 +57,13 @@ export const create = (view, component) => {
             renderedItems,
             data,
             (item) => {
-                const view = component();
+                const view = component(bindHook(component));
+                if (view instanceof Promise) {
+                    throw new ReconcileGenError(
+                        "render function is not accepted Promise"
+                    );
+                    //TODO :support promise FunctionalComponent
+                }
                 return createItem(item, view);
             },
             (node, item) => node.update(item)
