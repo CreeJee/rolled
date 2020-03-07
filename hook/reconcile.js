@@ -1,5 +1,5 @@
 import { reconcile } from "../base/reconcile.js";
-import { bindHook } from "./basic.js";
+import { invokeEvent, isHooked, getHook } from "./basic.js";
 class ReconcileGenError extends Error {
     constructor(msg) {
         super(msg);
@@ -31,7 +31,7 @@ const updater = (old, view, isUpdate = noOpCond) => {
         }
     };
 };
-const createItem = (item, itemGroup, isUpdate, onUpdate) => {
+const createItem = (item, itemGroup, isUpdate) => {
     const root = itemGroup.cloneNode(true);
     let rootChild = root.firstChild;
     let itemChild = itemGroup.firstChild;
@@ -47,29 +47,31 @@ const createItem = (item, itemGroup, isUpdate, onUpdate) => {
     return root;
 };
 
-export const create = (view, component) => {
-    const { ref } = view.collect(view);
+export const render = (parent, component) => {
     let renderedItems = [];
 
-    view.update = function(data) {
+    parent.update = function(data) {
         reconcile(
-            ref,
+            parent,
             renderedItems,
             data,
             (item) => {
-                const view = component(bindHook(component));
+                const view = component(item);
                 if (view instanceof Promise) {
                     throw new ReconcileGenError(
                         "render function is not accepted Promise"
                     );
-                    //TODO :support promise FunctionalComponent
                 }
-                return createItem(item, view);
+                const rendered = createItem(item, view);
+                if (isHooked(view)) {
+                    invokeEvent(getHook(view), "mount");
+                }
+                return rendered;
             },
             (node, item) => node.update(item)
         );
         renderedItems = data.slice();
     };
-    return view;
+    return parent;
 };
-export default create;
+export default render;

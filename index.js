@@ -109,6 +109,7 @@ const getSelfPath = (node) => {
         } else {
             idx++;
         }
+        //???
         if (!node.isSameNode(current) && siblings.includes(current)) {
             break;
         }
