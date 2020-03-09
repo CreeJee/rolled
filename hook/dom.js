@@ -1,6 +1,6 @@
-import { reconcile } from "../base/reconcile.js";
 import { invokeEvent, isHooked, getHook } from "./basic.js";
-class ReconcileGenError extends Error {
+import { reconcile } from "../base/reconcile.js";
+export class LayoutGenError extends Error {
     constructor(msg) {
         super(msg);
     }
@@ -14,7 +14,7 @@ const onUpdate = (node, current, key) => {
             node.nodeValue = current;
             break;
         default:
-            throw new ReconcileGenError("unaccepted data");
+            throw new LayoutGenError("unaccepted data");
     }
 };
 const noOpCond = (current, before) => true;
@@ -31,8 +31,9 @@ const updater = (old, view, isUpdate = noOpCond) => {
         }
     };
 };
-const createItem = (item, itemGroup, isUpdate) => {
-    const root = itemGroup.cloneNode(true);
+export const __generateDom = (item, itemGroup, isUpdate) => {
+    // const root = itemGroup.cloneNode(true);
+    const root = itemGroup;
     let rootChild = root.firstChild;
     let itemChild = itemGroup.firstChild;
     if (rootChild !== null && itemChild !== null) {
@@ -46,32 +47,36 @@ const createItem = (item, itemGroup, isUpdate) => {
     }
     return root;
 };
-
-export const render = (parent, component) => {
+export const __generateComponent = (item, component) => {
+    const view = component(item);
+    if (view instanceof Promise) {
+        throw new LayoutGenError("lazy-renderer is not supproted");
+    }
+    const rendered = __generateDom(item, view);
+    if (isHooked(view)) {
+        invokeEvent(getHook(view), "mount");
+    }
+    return rendered;
+};
+export const __generateChildren = (parent, childs, renderer = reconcile) => {
     let renderedItems = [];
-
     parent.update = function(data) {
-        reconcile(
+        renderer(
             parent,
             renderedItems,
-            data,
-            (item) => {
-                const view = component(item);
-                if (view instanceof Promise) {
-                    throw new ReconcileGenError(
-                        "render function is not accepted Promise"
-                    );
-                }
-                const rendered = createItem(item, view);
+            childs,
+            (hoc) => {
+                const view = hoc({});
+                let item = {};
                 if (isHooked(view)) {
-                    invokeEvent(getHook(view), "mount");
+                    item = getHook(view).props;
                 }
-                return rendered;
+                return __generateDom(item, view);
             },
             (node, item) => node.update(item)
         );
-        renderedItems = data.slice();
+        renderedItems = childs.slice();
     };
+    parent.update(childs.slice());
     return parent;
 };
-export default render;

@@ -1,5 +1,7 @@
+import { __generateChildren } from "./dom.js";
+
 const generateMemoryKey = () => Object.create(null);
-class HookValue {
+class Context {
     constructor(value, nth) {
         this.value = value;
         this.nth = nth;
@@ -14,7 +16,12 @@ class HookValue {
         return this.value;
     }
     static convert(value, nth) {
-        return new HookValue(value, nth);
+        return new Context(value, nth);
+    }
+}
+class HookError extends Error {
+    constructor(...args) {
+        super(...args);
     }
 }
 const hookSymbol = Symbol("@@Hook");
@@ -41,8 +48,7 @@ function expectEvent(context, eventName) {
     ) {
         return;
     }
-
-    throw new Error(`${eventName} is not supported Event`);
+    throw new HookError(`${eventName} is not supported Event`);
 }
 export function invokeEvent(hookContext, eventName) {
     expectEvent(hookContext, eventName);
@@ -77,11 +83,12 @@ function clearEvent(context, eventName) {
     }
 }
 export function useState(context, initValue) {
-    const temp = [null, null];
+    const temp = {};
     const state = context.state;
     const nth = state.length;
+    let timer = -1;
     if (!state[nth]) {
-        state[nth] = HookValue.convert(initValue || undefined, nth);
+        state[nth] = Context.convert(initValue || undefined, nth);
     }
     Object.defineProperties(temp, {
         0: {
@@ -90,12 +97,23 @@ export function useState(context, initValue) {
         1: {
             get: () =>
                 function setter(val) {
-                    state[nth].value =
-                        val instanceof HookValue ? val.value : val;
+                    state[nth].value = val instanceof Context ? val.value : val;
                     //batching ang merge
-                    //그럴시 타이머? 혹은 다른거?
-                    // invokeEvent(context, EVENT_NAME.mount);
+                    if (timer >= 0) {
+                        // @ts-ignore
+                        window.cancelAnimationFrame(timer);
+                    }
+                    // @ts-ignore
+                    timer = window.requestAnimationFrame(() =>
+                        invokeEvent(context, EVENT_NAME.mount)
+                    );
                 }
+        },
+        [Symbol.iterator]: {
+            value: function*() {
+                yield this[0];
+                yield this[1];
+            }
         }
     });
     return temp;
@@ -105,16 +123,17 @@ export function useEffect(context, onCycle, depArray = null) {
         context.state.find(({ value }) => value === v)
     );
     if (!Array.isArray(depArray) && depArray !== null) {
-        throw new Error("dep is must Array or null");
+        throw new HookError("dep is must Array or null");
     }
     const event = (context) => {
         const isChange =
             deps.length > 0 && depArray
-                ? !depArray.every((el, nth) => el === deps[nth])
+                ? // 비교필요
+                  !depArray.every((el, nth) => el === deps[nth])
                 : true;
         if (isChange) {
-            // context.state = [...depArray];
             const unMount = onCycle();
+            // mount & update dom life cycle
             const $dom = context.$dom;
             //is depArray is difference
             if (typeof unMount === "function") {
@@ -127,6 +146,9 @@ export function useEffect(context, onCycle, depArray = null) {
                     context.$dom.splice(0);
                 });
             }
+            for (const $item of $dom) {
+                $item.update(context.props.item);
+            }
         }
     };
     boundEvent(context, EVENT_NAME.mount, event);
@@ -134,6 +156,7 @@ export function useEffect(context, onCycle, depArray = null) {
 export function bindHook(render, props = {}) {
     const hookContext = {
         state: [],
+        props,
         $dom: null,
         render() {
             return render();
@@ -154,13 +177,22 @@ export function bindHook(render, props = {}) {
 }
 export const c = (component, props, children) => {
     const hoc = (item) => {
-        const tagProps = { ...props, ...item, children };
+        const tagProps = { ...props, item };
         const hookContext = bindHook(component, tagProps);
         const current = component(tagProps, hookContext);
-        hookContext.$dom =
-            current.nodeType === Node.DOCUMENT_FRAGMENT_NODE
-                ? Array.from(current.childNodes)
-                : [current];
+
+        if (!(current instanceof Node)) {
+            throw new HookError("render function is must node");
+        }
+        if (current.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+            hookContext.$dom = Array.from(current.childNodes);
+            if (Array.isArray(children) && children.length > 0) {
+                throw new HookError("fragment-child is not support");
+            }
+        } else {
+            hookContext.$dom = [current];
+            __generateChildren(current, children);
+        }
         setHook(current, hookContext);
         return current;
     };

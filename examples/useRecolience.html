@@ -10,34 +10,44 @@
         <div id="app"></div>
         <script type="module">
             import { fragment, h } from "/index.js";
-            // import reconcile from "/reconcile.js";
-            // import keyed from "/keyed.js";
-            import { render } from "/hook/reconcile.js";
+            import { render } from "/hook/index.js";
             import { c } from "/hook/basic.js";
             // FC case
-            const Child = ({ ...props } = {}, { useState, useEffect }) => {
+            const Child = (
+                { item, children, ...props },
+                { useState, useEffect }
+            ) => {
                 const [number, setNumber] = useState(1);
                 const [number2, setNumber2] = useState(2);
                 useEffect(() => {
                     console.log(`onEffect[${number},${number2}]`);
+                    item.id = number;
+                    item.name = props.name;
                     return () => {
                         console.log("onRemove");
                     };
                 }, [number2, number]);
-
-                window.nm = setNumber;
-
-                setTimeout(() => setNumber(3), 1000);
+                setTimeout(() => setNumber(99), 1000);
                 return fragment`
-                    <span>#name</span>
-                    <span>#id</span>
+                    <p>
+                        <span>#name</span>
+                        <span>#id</span>
+                    </p>
                 `;
             };
-            const mainRoot = render(
+            const Parent = ({ item }) => {
+                return h`<div class='parent'></div>`;
+            };
+            render(
                 document.getElementById("app"),
-                c(Child, {
-                    foo: "bar"
-                })
+                c(Parent, {}, [
+                    c(Parent, {}, [
+                        c(Child, { name: "foo" }, []),
+                        c(Child, { name: "bar" }, [])
+                    ]),
+                    c(Child, { name: "first" }, []),
+                    c(Child, { name: "second" }, [])
+                ])
             );
             //Nomral Component Case
             // const Child = () => {
@@ -47,10 +57,10 @@
             //     `;
             // };
             // const mainRoot = render(document.getElementById("app"), Child);
-            mainRoot.update([
-                { name: "o", id: 1 },
-                { name: "k", id: 2 }
-            ]);
+            // mainRoot.update([
+            //     { name: "o", id: 1 },
+            //     { name: "k", id: 2 }
+            // ]);
             //     setTimeout(() => {
             //         mainRoot.update([
             //             { name: "o", id: 1 },
