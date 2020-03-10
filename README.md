@@ -1,8 +1,7 @@
 
 # rolled
-clone & customized stage0 for better developer experiments
+well hooked & better flow control
 > if Freak613 wants close this repo, i will archive it...
-
 > please do not use product... X_X
 
 ## TODO LIST
@@ -16,8 +15,8 @@ clone & customized stage0 for better developer experiments
         - [ ] not global object but own context & scoping
         - [x] useState
         - [x] useEffect
-        - [ ] useContext
-          - [x] taskIn....
+        - [x] useContext
+          - [ ] really need?
         - [ ] useReducer
         - [ ] useCallback
         - [ ] useMemo
@@ -30,7 +29,8 @@ clone & customized stage0 for better developer experiments
         - [ ] recycle dom values
       - [ ] layout effects used object item or props values
     - [x] support fragment (use documentFragment)
-        - [x] reconcile, keyed support
+      - [x] reconcile, keyed support
+      - [ ] h & fragment support template liternals
 ## doc
 
 ### fragment

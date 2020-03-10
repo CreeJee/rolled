@@ -153,6 +153,11 @@ export function useEffect(context, onCycle, depArray = null) {
     };
     boundEvent(context, EVENT_NAME.mount, event);
 }
+//it will be removed...?
+export function useContext(value) {
+    return Context.convert(value);
+}
+export function useReducer(value) {}
 export function bindHook(render, props = {}) {
     const hookContext = {
         state: [],
