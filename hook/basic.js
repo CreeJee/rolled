@@ -1,10 +1,20 @@
 import { __generateChildren } from "./dom.js";
 
 const generateMemoryKey = () => Object.create(null);
+const __Context_Getter = (target, prop, receiver) => {
+    return Reflect.get(
+        prop in target.value ? target.value : target,
+        prop,
+        receiver
+    );
+};
 class Context {
     constructor(value, nth) {
         this.value = value;
         this.nth = nth;
+        return new Proxy(this, {
+            get: __Context_Getter
+        });
     }
     toString() {
         return this.value.toString();
@@ -48,7 +58,7 @@ function expectEvent(context, eventName) {
     ) {
         return;
     }
-    throw new HookError(`${eventName} is not supported Event`);
+    throw new HookError(`${eventName.toString()} is not supported Event`);
 }
 export function invokeEvent(hookContext, eventName) {
     expectEvent(hookContext, eventName);
@@ -82,11 +92,15 @@ function clearEvent(context, eventName) {
         events[eventName] = () => {};
     }
 }
-export function useState(context, initValue) {
-    const temp = {};
+function __stateLayout(context, initValue, setter) {
+    const temp = {
+        [Symbol.iterator]: function*() {
+            yield this[0];
+            yield this[1];
+        }
+    };
     const state = context.state;
     const nth = state.length;
-    let timer = -1;
     if (!state[nth]) {
         state[nth] = Context.convert(initValue || undefined, nth);
     }
@@ -96,27 +110,48 @@ export function useState(context, initValue) {
         },
         1: {
             get: () =>
-                function setter(val) {
-                    state[nth].value = val instanceof Context ? val.value : val;
-                    //batching ang merge
-                    if (timer >= 0) {
-                        // @ts-ignore
-                        window.cancelAnimationFrame(timer);
+                function __dispatch(val) {
+                    let value = val instanceof Context ? val.value : val;
+                    let contextValue = state[nth];
+                    contextValue.value = value;
+                    if (typeof setter === "function") {
+                        //is it really nessary setter?
+                        setter(contextValue);
                     }
-                    // @ts-ignore
-                    timer = window.requestAnimationFrame(() =>
-                        invokeEvent(context, EVENT_NAME.mount)
-                    );
                 }
-        },
-        [Symbol.iterator]: {
-            value: function*() {
-                yield this[0];
-                yield this[1];
-            }
         }
     });
     return temp;
+}
+//TODO : lazy initValue (typeof initValue === 'function')
+function _lazySetter__useEffect(value) {
+    return value;
+}
+function __stateEffect(
+    context,
+    initValue,
+    _lazySetter = typeof initValue === "function"
+        ? initValue
+        : _lazySetter__useEffect
+) {
+    let timer = -1;
+    return __stateLayout(context, initValue, (contextValue) => {
+        if (timer >= 0) {
+            window.cancelAnimationFrame(timer);
+        }
+        timer = window.requestAnimationFrame(() => {
+            contextValue.value = _lazySetter(contextValue.value);
+            invokeEvent(context, EVENT_NAME.mount);
+            // invokeEvent(context, EVENT_NAME.watch);
+        });
+        return contextValue;
+    });
+}
+export function useState(context, initValue, _lazySetter) {
+    const state = __stateEffect(context, initValue, _lazySetter);
+    const __dispatch = state[1];
+    __dispatch(initValue);
+    return state;
 }
 export function useEffect(context, onCycle, depArray = null) {
     const deps = depArray.map((v, k) =>
@@ -136,16 +171,16 @@ export function useEffect(context, onCycle, depArray = null) {
             // mount & update dom life cycle
             const $dom = context.$dom;
             //is depArray is difference
-            if (typeof unMount === "function") {
-                boundEvent(context, EVENT_NAME.unMount, (context) => {
+            boundEvent(context, EVENT_NAME.unMount, (context) => {
+                if (typeof unMount === "function") {
                     unMount(context);
-                    //소멸사이클
-                    for (const k of Object.values(EVENT_NAME)) {
-                        clearEvent(context, k);
-                    }
-                    context.$dom.splice(0);
-                });
-            }
+                }
+                //소멸사이클
+                for (const k of Object.values(EVENT_NAME)) {
+                    clearEvent(context, k);
+                }
+                // context.$dom.splice(0);
+            });
             for (const $item of $dom) {
                 $item.update(context.props.item);
             }
@@ -157,7 +192,19 @@ export function useEffect(context, onCycle, depArray = null) {
 export function useContext(value) {
     return Context.convert(value);
 }
-export function useReducer(value) {}
+export function useReducer(context, reducer, initState, init) {
+    const baseState = typeof init === "function" ? init(initState) : initState;
+    const contextedState = __stateEffect(context, baseState);
+    const [currentState, __dispatch] = contextedState;
+    const dispatcher = ({ type, payload }) => {
+        const result = reducer(currentState, {
+            type,
+            payload
+        });
+        __dispatch(result);
+    };
+    return [currentState, dispatcher];
+}
 export function bindHook(render, props = {}) {
     const hookContext = {
         state: [],
@@ -176,6 +223,9 @@ export function bindHook(render, props = {}) {
         },
         useEffect(...arg) {
             return useEffect(hookContext, ...arg);
+        },
+        useReducer(...arg) {
+            return useReducer(hookContext, ...arg);
         }
     };
     return hookContext;

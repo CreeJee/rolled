@@ -17,7 +17,7 @@ well hooked & better flow control
         - [x] useEffect
         - [x] useContext
           - [ ] really need?
-        - [ ] useReducer
+        - [x] useReducer
         - [ ] useCallback
         - [ ] useMemo
         - [ ] useRef
@@ -30,6 +30,7 @@ well hooked & better flow control
       - [ ] layout effects used object item or props values
     - [x] support fragment (use documentFragment)
       - [x] reconcile, keyed support
+      - [x] fragment is now added collecting nodes
       - [ ] h & fragment support template liternals
 ## doc
 

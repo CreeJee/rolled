@@ -31,7 +31,7 @@ const updater = (old, view, isUpdate = noOpCond) => {
         }
     };
 };
-export const __generateDom = (item, itemGroup, isUpdate) => {
+export const __generateDom = ({ ...item }, itemGroup, isUpdate) => {
     // const root = itemGroup.cloneNode(true);
     const root = itemGroup;
     let rootChild = root.firstChild;

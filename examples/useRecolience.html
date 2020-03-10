@@ -27,7 +27,7 @@
                         console.log("onRemove");
                     };
                 }, [number2, number]);
-                setTimeout(() => setNumber(99), 1000);
+                setTimeout(() => setNumber(99), 3000);
                 return fragment`
                     <p>
                         <span>#name</span>
@@ -38,6 +38,7 @@
             const Parent = ({ item }) => {
                 return h`<div class='parent'></div>`;
             };
+
             render(
                 document.getElementById("app"),
                 c(Parent, {}, [

@@ -123,9 +123,17 @@ export const fragmentCompile = (node) => {
         self.collect = walker;
     }
 };
+const fragmentCollect = (node) => {
+    const refs = {};
+    for (const self of node.childNodes) {
+        Object.assign(refs, self.collect(self));
+    }
+    return refs;
+};
 export const fragment = (strings, ...args) => {
     const content = extractFragment(strings, ...args);
     fragmentCompile(content);
+    content.collect = fragmentCollect;
     return content;
 };
 export default h;
