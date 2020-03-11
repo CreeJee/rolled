@@ -12,14 +12,21 @@ well hooked & better flow control
 2. change main logic
     - [ ] auto bind mutation event (ex : reconcile);
       - [ ] hook
-        - [ ] not global object but own context & scoping
+        - [ ] core 
+          - [x] not global object but own context & scoping
+          - [ ] batching tasks
+            - [x] layout tasks
+            - [x] mutation tasks
+            - [ ] testing benchmark
         - [x] useState
         - [x] useEffect
+          - [ ] on removed all $dom Array in hooks then fired unMount
         - [x] useContext
           - [ ] really need?
         - [x] useReducer
-        - [ ] useCallback
-        - [ ] useMemo
+        - [x] component mutation is applied only tags, not component so we will not implements
+          - [x] useCallback
+          - [x] useMemo
         - [ ] useRef
         - [ ] useImperativeHandle
         - [ ] useLayoutEffect

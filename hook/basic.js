@@ -1,9 +1,17 @@
 import { __generateChildren } from "./dom.js";
+import { getAnimationQueue, getTimerQueue, getIdleQueue } from "./taskQueue.js";
 
 const generateMemoryKey = () => Object.create(null);
+const globalEnvironments = {
+    stateTask: getIdleQueue(),
+    layoutTask: getAnimationQueue()
+};
 const __Context_Getter = (target, prop, receiver) => {
+    const pureValue = target.value;
     return Reflect.get(
-        prop in target.value ? target.value : target,
+        typeof pureValue === "object" && prop in pureValue
+            ? target.value
+            : target,
         prop,
         receiver
     );
@@ -132,18 +140,16 @@ function __stateEffect(
     initValue,
     _lazySetter = typeof initValue === "function"
         ? initValue
-        : _lazySetter__useEffect
+        : _lazySetter__useEffect,
+    _tasQueue = globalEnvironments.stateTask
 ) {
-    let timer = -1;
     return __stateLayout(context, initValue, (contextValue) => {
-        if (timer >= 0) {
-            window.cancelAnimationFrame(timer);
-        }
-        timer = window.requestAnimationFrame(() => {
+        _tasQueue.add(() => {
             contextValue.value = _lazySetter(contextValue.value);
             invokeEvent(context, EVENT_NAME.mount);
             // invokeEvent(context, EVENT_NAME.watch);
         });
+        // console.log("settedEnvironments", context);
         return contextValue;
     });
 }
@@ -179,7 +185,7 @@ export function useEffect(context, onCycle, depArray = null) {
                 for (const k of Object.values(EVENT_NAME)) {
                     clearEvent(context, k);
                 }
-                // context.$dom.splice(0);
+                context.$dom.splice(0);
             });
             for (const $item of $dom) {
                 $item.update(context.props.item);
