@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+    </head>
+    <body>
+        <div id="app"></div>
+        <script type="module">
+            import { fragment, h } from "/index.js";
+            import { render } from "/hook/index.js";
+            import { c, combineReducers, combineHooks } from "/hook/basic.js";
+            import {
+                setupSyntheticEvent,
+                addEventListener
+            } from "/syntheticEvents.js";
+            const testingHooks = [];
+
+            setupSyntheticEvent("click");
+            function init(initialCount) {
+                return { count: initialCount };
+            }
+            function reducer(state, action) {
+                switch (action.type) {
+                    case "increment":
+                        return { count: state.count + 1 };
+                    case "decrement":
+                        return { count: state.count - 1 };
+                    case "reset":
+                        return init(action.payload);
+                    default:
+                        return init(0);
+                }
+            }
+
+            function Counter(
+                { initialCount, item },
+                { useReducer, useEffect }
+            ) {
+                const originalState = useReducer(reducer, initialCount, init);
+                const [state, dispatch] = originalState;
+                testingHooks.push(originalState);
+                useEffect(() => {
+                    item.count = state.count;
+                }, [state]);
+                const $dom = fragment`
+                    Count:<span>#count</span>
+                    <button #reset>Reset</button>
+                    <button #minus>-</button>
+                    <button #plus>+</button>
+                `;
+                const { reset, minus, plus } = $dom.collect($dom);
+                addEventListener(reset, "click", () => {
+                    dispatch({
+                        type: "reset",
+                        payload: initialCount
+                    });
+                });
+                addEventListener(minus, "click", () => {
+                    dispatch({ type: "decrement" });
+                });
+                addEventListener(plus, "click", () => {
+                    dispatch({ type: "increment" });
+                });
+                return $dom;
+            }
+
+            function Parent() {
+                return h`<div></div>`;
+            }
+            render(
+                document.getElementById("app"),
+                c(Parent, {}, [
+                    c(Counter, { initialCount: 0 }),
+                    c(Counter, { initialCount: 0 })
+                ])
+            );
+            window.combinedHooks = combineHooks(testingHooks);
+            window.combineReduce = combineReducers([reducer, reducer]);
+        </script>
+    </body>
+</html>

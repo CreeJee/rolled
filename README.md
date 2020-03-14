@@ -20,25 +20,34 @@ well hooked & better flow control
             - [ ] testing benchmark
         - [x] useState
         - [x] useEffect
-          - [ ] on removed all $dom Array in hooks then fired unMount
-        - [x] useContext
-          - [ ] really need?
+          - [x] on removed all $dom Array in hooks then fired unMount
+        - [ ] really need?
+          - [x] useContext
+          - [ ] useRef
+          - [ ] useImperativeHandle
+          - [ ] useLayoutEffect
+          - [ ] useDebugValue
         - [x] useReducer
         - [x] component mutation is applied only tags, not component so we will not implements
           - [x] useCallback
           - [x] useMemo
-        - [ ] useRef
-        - [ ] useImperativeHandle
-        - [ ] useLayoutEffect
-        - [ ] useDebugValue
       - [ ] like Functional component things
+      - [ ] NEW action
+        - [ ] pipe
+        - [ ] combineHook
+        - [ ] genericBounder
+        - [x] useHook
+        - [x] bindGlobalHook
+        - [ ] NEED MORE IDEA....
       - [ ] [hyperscript](https://github.com/hyperhype/hyperscript) interface in component
         - [ ] recycle dom values
       - [ ] layout effects used object item or props values
     - [x] support fragment (use documentFragment)
       - [x] reconcile, keyed support
       - [x] fragment is now added collecting nodes
-      - [ ] h & fragment support template liternals
+      - [ ] h & fragment support template liternals props
+        - [ ] auto marked data
+        - [ ] 
 ## doc
 
 ### fragment

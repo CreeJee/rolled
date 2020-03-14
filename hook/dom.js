@@ -52,8 +52,10 @@ export const __generateComponent = (item, component) => {
     if (view instanceof Promise) {
         throw new LayoutGenError("lazy-renderer is not supproted");
     }
-    const rendered = __generateDom(item, view);
-    if (isHooked(view)) {
+    const hook = getHook(view);
+    const isHook = isHooked(view);
+    const rendered = __generateDom(isHook ? hook.props : {}, view);
+    if (isHook) {
         invokeEvent(getHook(view), "mount");
     }
     return rendered;
@@ -65,14 +67,7 @@ export const __generateChildren = (parent, childs, renderer = reconcile) => {
             parent,
             renderedItems,
             childs,
-            (hoc) => {
-                const view = hoc({});
-                let item = {};
-                if (isHooked(view)) {
-                    item = getHook(view).props;
-                }
-                return __generateDom(item, view);
-            },
+            (hoc) => __generateComponent({}, hoc),
             (node, item) => node.update(item)
         );
         renderedItems = childs.slice();

@@ -4,7 +4,8 @@ import { getAnimationQueue, getTimerQueue, getIdleQueue } from "./taskQueue.js";
 const generateMemoryKey = () => Object.create(null);
 const globalEnvironments = {
     stateTask: getIdleQueue(),
-    layoutTask: getAnimationQueue()
+    layoutTask: getAnimationQueue(),
+    hooksMiddleWare: []
 };
 const __Context_Getter = (target, prop, receiver) => {
     const pureValue = target.value;
@@ -37,17 +38,28 @@ class Context {
         return new Context(value, nth);
     }
 }
+class StateObject {
+    constructor(getter, dispatcher) {
+        Object.defineProperties(this, {
+            0: {
+                get: getter
+            },
+            1: {
+                get: () => dispatcher
+            }
+        });
+    }
+    *[Symbol.iterator]() {
+        yield this[0];
+        yield this[1];
+    }
+}
 class HookError extends Error {
     constructor(...args) {
         super(...args);
     }
 }
 const hookSymbol = Symbol("@@Hook");
-const EVENT_NAME = {
-    unMount: "unMount",
-    mount: "mount",
-    watch: Symbol("WATCHED_EVENT")
-};
 export function isHooked(component) {
     return hookSymbol in component;
 }
@@ -57,6 +69,35 @@ export function getHook(component) {
 function setHook(component, hook) {
     return (component[hookSymbol] = hook);
 }
+export function useGlobalHook(hook) {
+    if (typeof hook !== "function") {
+        throw new HookError("custom hook middleware is must function");
+    }
+    globalEnvironments.hooksMiddleWare.push(hook);
+}
+function bindGlobalHook(hook) {
+    return globalEnvironments.hooksMiddleWare.reduce((accr, handler) => {
+        const initResult = handler(hook) || {};
+        const handlers = Object.values(initResult);
+        if (
+            typeof initResult === "object" &&
+            handlers.every((v) => typeof v === "function")
+        ) {
+            Object.assign(accr, initResult);
+        } else {
+            throw new HookError(
+                "custom hook middleware result is must object & each element is must function"
+            );
+        }
+        return accr;
+    }, {});
+}
+//event
+const EVENT_NAME = {
+    unMount: "unMount",
+    mount: "mount",
+    watch: Symbol("WATCHED_EVENT")
+};
 function expectEvent(context, eventName) {
     if (
         context &&
@@ -100,35 +141,25 @@ function clearEvent(context, eventName) {
         events[eventName] = () => {};
     }
 }
+
 function __stateLayout(context, initValue, setter) {
-    const temp = {
-        [Symbol.iterator]: function*() {
-            yield this[0];
-            yield this[1];
-        }
-    };
     const state = context.state;
     const nth = state.length;
+    const temp = new StateObject(
+        () => state[nth],
+        function __dispatch(val) {
+            let value = val instanceof Context ? val.value : val;
+            let contextValue = state[nth];
+            contextValue.value = value;
+            if (typeof setter === "function") {
+                //is it really nessary setter?
+                setter(contextValue);
+            }
+        }
+    );
     if (!state[nth]) {
         state[nth] = Context.convert(initValue || undefined, nth);
     }
-    Object.defineProperties(temp, {
-        0: {
-            get: () => state[nth]
-        },
-        1: {
-            get: () =>
-                function __dispatch(val) {
-                    let value = val instanceof Context ? val.value : val;
-                    let contextValue = state[nth];
-                    contextValue.value = value;
-                    if (typeof setter === "function") {
-                        //is it really nessary setter?
-                        setter(contextValue);
-                    }
-                }
-        }
-    });
     return temp;
 }
 //TODO : lazy initValue (typeof initValue === 'function')
@@ -159,6 +190,29 @@ export function useState(context, initValue, _lazySetter) {
     __dispatch(initValue);
     return state;
 }
+function __cycleEffects(cycle, nextCycle) {
+    return typeof cycle === "function" ? cycle(nextCycle) : nextCycle();
+}
+function __unMountCycle(context) {
+    return () => {
+        for (const k of Object.values(EVENT_NAME)) {
+            clearEvent(context, k);
+        }
+        // context.$dom.splice(0);
+    };
+}
+function __onMountCycle(context) {
+    return (unMount) => {
+        const $dom = context.$dom;
+        for (const $item of $dom) {
+            $item.update(context.props.item);
+        }
+        boundEvent(context, EVENT_NAME.unMount, (context) => {
+            __cycleEffects(unMount, __unMountCycle(context));
+        });
+    };
+}
+
 export function useEffect(context, onCycle, depArray = null) {
     const deps = depArray.map((v, k) =>
         context.state.find(({ value }) => value === v)
@@ -173,23 +227,7 @@ export function useEffect(context, onCycle, depArray = null) {
                   !depArray.every((el, nth) => el === deps[nth])
                 : true;
         if (isChange) {
-            const unMount = onCycle();
-            // mount & update dom life cycle
-            const $dom = context.$dom;
-            //is depArray is difference
-            boundEvent(context, EVENT_NAME.unMount, (context) => {
-                if (typeof unMount === "function") {
-                    unMount(context);
-                }
-                //소멸사이클
-                for (const k of Object.values(EVENT_NAME)) {
-                    clearEvent(context, k);
-                }
-                context.$dom.splice(0);
-            });
-            for (const $item of $dom) {
-                $item.update(context.props.item);
-            }
+            __cycleEffects(onCycle, __onMountCycle(context));
         }
     };
     boundEvent(context, EVENT_NAME.mount, event);
@@ -198,18 +236,31 @@ export function useEffect(context, onCycle, depArray = null) {
 export function useContext(value) {
     return Context.convert(value);
 }
+
+function invokeReducer(reducer, state = {}, { type = "", payload = {} } = {}) {
+    return reducer(state, { type, payload });
+}
 export function useReducer(context, reducer, initState, init) {
     const baseState = typeof init === "function" ? init(initState) : initState;
     const contextedState = __stateEffect(context, baseState);
     const [currentState, __dispatch] = contextedState;
     const dispatcher = ({ type, payload }) => {
-        const result = reducer(currentState, {
-            type,
-            payload
-        });
+        const result = invokeReducer(reducer, currentState, { type, payload });
         __dispatch(result);
     };
-    return [currentState, dispatcher];
+    return new StateObject(() => currentState, dispatcher);
+}
+
+export function combineReducers(reducerObject) {
+    const entryKeys = Object.keys(reducerObject);
+    return () => {
+        const temp = {};
+        for (let index = 0; index < entryKeys.length; index++) {
+            const key = entryKeys[index];
+            temp[key] = invokeReducer(reducerObject[key]);
+        }
+        return temp;
+    };
 }
 export function bindHook(render, props = {}) {
     const hookContext = {
@@ -232,9 +283,15 @@ export function bindHook(render, props = {}) {
         },
         useReducer(...arg) {
             return useReducer(hookContext, ...arg);
+        },
+        //전역으로서 봐야할지
+        //middleware로서 전체바인딩을 해야할지 난제이다
+
+        useHook(fn) {
+            return Object.assign(bindHook, fn(hookContext));
         }
     };
-    return hookContext;
+    return { ...bindGlobalHook(hookContext), ...hookContext };
 }
 export const c = (component, props, children) => {
     const hoc = (item) => {
