@@ -11,7 +11,9 @@ const plugins = [
         mainFields: ["module", "jsnext"],
         browser: true
     }),
-    minifyliterals(),
+    // minifyliterals({
+    //     literals: true
+    // }),
     babel({
         exclude: "node_modules/**",
         presets: [["@babel/preset-env"]],
@@ -23,9 +25,13 @@ const plugins = [
 
 const files = [
     "index",
-    "keyed",
-    "reconcile",
-    "reuseNodes",
+    "base/keyed",
+    "base/reconcile",
+    "base/reuseNodes",
+    "hook/basic",
+    "hook/dom",
+    "hook/index",
+    "hook/taskQueue",
     "styles",
     "syntheticEvents"
 ];

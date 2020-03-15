@@ -237,15 +237,15 @@ export function useContext(value) {
     return Context.convert(value);
 }
 
-function invokeReducer(reducer, state = {}, { type = "", payload = {} } = {}) {
-    return reducer(state, { type, payload });
+function invokeReducer(reducer, state = {}, param = {}) {
+    return reducer(state, param);
 }
 export function useReducer(context, reducer, initState, init) {
     const baseState = typeof init === "function" ? init(initState) : initState;
     const contextedState = __stateEffect(context, baseState);
     const [currentState, __dispatch] = contextedState;
-    const dispatcher = ({ type, payload }) => {
-        const result = invokeReducer(reducer, currentState, { type, payload });
+    const dispatcher = (param) => {
+        const result = invokeReducer(reducer, currentState, param);
         __dispatch(result);
     };
     return new StateObject(() => currentState, dispatcher);
@@ -266,7 +266,7 @@ export function bindHook(render, props = {}) {
     const hookContext = {
         state: [],
         props,
-        $dom: null,
+        $dom: [],
         render() {
             return render();
         },

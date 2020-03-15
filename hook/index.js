@@ -1,6 +1,6 @@
 import { __generateComponent } from "./dom.js";
 import { reuseNodes } from "../base/reuseNodes.js";
-
+export * from "./basic.js";
 export const render = (parent, component) => {
     let renderedItems = [];
 
