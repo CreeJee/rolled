@@ -23,17 +23,15 @@ const valueOf = (value) =>
 const updater = (old, view, isUpdate = noOpCond) => {
     //needs bound self
     return function __nestedUpdate__(item) {
+        console.log(item, old);
         const collector = view.collect(this);
         for (const key in collector) {
             const current = item[key];
             const before = old[key];
             if (current !== before && isUpdate(current, before)) {
                 onUpdate(collector[key], current, key);
+                old[key] = valueOf(item[key]);
             }
-        }
-        //reflection with proxy like value
-        for (const k of Object.keys(item)) {
-            old[k] = valueOf(item[k]);
         }
     };
 };
@@ -45,7 +43,7 @@ export const __generateDom = ({ ...item }, itemGroup) => {
     if (rootChild !== null && itemChild !== null) {
         do {
             rootChild.update = updater(item, itemChild);
-            updater({}, itemChild).call(rootChild, item);
+            // updater({}, itemChild).call(rootChild, item);
         } while (
             (rootChild = rootChild.nextSibling) &&
             (itemChild = itemChild.nextSibling)
