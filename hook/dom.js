@@ -18,6 +18,8 @@ const onUpdate = (node, current, key) => {
     }
 };
 const noOpCond = (current, before) => true;
+const valueOf = (value) =>
+    typeof value === "object" ? value.valueOf() : value;
 const updater = (old, view, isUpdate = noOpCond) => {
     //needs bound self
     return function __nestedUpdate__(item) {
@@ -29,17 +31,21 @@ const updater = (old, view, isUpdate = noOpCond) => {
                 onUpdate(collector[key], current, key);
             }
         }
+        //reflection with proxy like value
+        for (const k of Object.keys(item)) {
+            old[k] = valueOf(item[k]);
+        }
     };
 };
-export const __generateDom = ({ ...item }, itemGroup, isUpdate) => {
+export const __generateDom = ({ ...item }, itemGroup) => {
     // const root = itemGroup.cloneNode(true);
     const root = itemGroup;
     let rootChild = root.firstChild;
     let itemChild = itemGroup.firstChild;
     if (rootChild !== null && itemChild !== null) {
         do {
-            rootChild.update = updater(item, itemChild, isUpdate);
-            updater({}, itemChild, isUpdate).call(rootChild, item);
+            rootChild.update = updater(item, itemChild);
+            updater({}, itemChild).call(rootChild, item);
         } while (
             (rootChild = rootChild.nextSibling) &&
             (itemChild = itemChild.nextSibling)

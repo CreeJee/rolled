@@ -13,16 +13,12 @@
             import { render } from "/hook/index.js";
             import { c } from "/hook/basic.js";
             // FC case
-            const Child = (
-                { item, children, ...props },
-                { useState, useEffect }
-            ) => {
+            const Child = (props, { useState, useEffect }) => {
                 const [number, setNumber] = useState(1);
                 const [number2, setNumber2] = useState(2);
                 useEffect(() => {
                     console.log(`onEffect[${number},${number2}]`);
-                    item.id = number;
-                    item.name = props.name;
+                    props.id = number;
                     return () => {
                         console.log("onRemove");
                     };

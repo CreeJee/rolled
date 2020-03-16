@@ -33,17 +33,15 @@
                 }
             }
 
-            function Counter(
-                { initialCount, item },
-                { useReducer, useEffect }
-            ) {
+            function Counter(props, { useReducer, useEffect }) {
+                const { initialCount } = props;
                 const [state, dispatch] = useReducer(
                     reducer,
                     initialCount,
                     init
                 );
                 useEffect(() => {
-                    item.count = state.count;
+                    props.count = state.count;
                 }, [state]);
                 const $dom = fragment`
                     Count:<span>#count</span>

@@ -62,7 +62,7 @@ export type hookedType<T extends HookContext, Other> = {
 export type ComponetType<
     T, 
     PropTypes,
-    __Props = {item: object} & PropTypes, 
+    __Props = PropTypes, 
     __HookContext = HookContext<T, __Props>,
     __WellNodeType = hookedType<__HookContext,BaseLiteralElement>
 > = (props: __Props, hookContext: __HookContext) => BaseLiteralElement;
@@ -83,4 +83,4 @@ export function c<
     component: __ComponentRenderType,
     props: PropTypes,
     children: [__ComponentRenderType]
-): BaseLiteralElement
+): hookedType<T, PropTypes> & BaseLiteralElement

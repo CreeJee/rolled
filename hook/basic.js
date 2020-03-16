@@ -191,7 +191,11 @@ export function useState(context, initValue, _lazySetter) {
     return state;
 }
 function __cycleEffects(cycle, nextCycle) {
-    return typeof cycle === "function" ? cycle(nextCycle) : nextCycle();
+    let cycleResult = null;
+    if (typeof cycle === "function") {
+        cycleResult = cycle(nextCycle);
+    }
+    nextCycle(cycleResult);
 }
 function __unMountCycle(context) {
     return () => {
@@ -205,7 +209,7 @@ function __onMountCycle(context) {
     return (unMount) => {
         const $dom = context.$dom;
         for (const $item of $dom) {
-            $item.update(context.props.item);
+            $item.update(context.props);
         }
         boundEvent(context, EVENT_NAME.unMount, (context) => {
             __cycleEffects(unMount, __unMountCycle(context));
@@ -214,9 +218,7 @@ function __onMountCycle(context) {
 }
 
 export function useEffect(context, onCycle, depArray = null) {
-    const deps = depArray.map((v, k) =>
-        context.state.find(({ value }) => value === v)
-    );
+    const deps = depArray.filter((dep) => dep instanceof Context);
     if (!Array.isArray(depArray) && depArray !== null) {
         throw new HookError("dep is must Array or null");
     }
@@ -224,7 +226,7 @@ export function useEffect(context, onCycle, depArray = null) {
         const isChange =
             deps.length > 0 && depArray
                 ? // 비교필요
-                  !depArray.every((el, nth) => el === deps[nth])
+                  !depArray.every((el, nth) => el.value === deps[nth.value])
                 : true;
         if (isChange) {
             __cycleEffects(onCycle, __onMountCycle(context));
@@ -288,14 +290,14 @@ export function bindHook(render, props = {}) {
         //middleware로서 전체바인딩을 해야할지 난제이다
 
         useHook(fn) {
-            return Object.assign(bindHook, fn(hookContext));
+            return Object.assign(hookContext, fn(hookContext));
         }
     };
-    return { ...bindGlobalHook(hookContext), ...hookContext };
+    return Object.assign(hookContext, bindGlobalHook(hookContext));
 }
 export const c = (component, props, children) => {
     const hoc = (item) => {
-        const tagProps = { ...props, item };
+        const tagProps = { ...props };
         const hookContext = bindHook(component, tagProps);
         const current = component(tagProps, hookContext);
 
