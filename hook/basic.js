@@ -60,14 +60,21 @@ class HookError extends Error {
     }
 }
 const hookSymbol = Symbol("@@Hook");
-export function isHooked(component) {
+export function hasHook(component) {
     return hookSymbol in component;
 }
 export function getHook(component) {
     return component[hookSymbol];
 }
 function setHook(component, hook) {
+    hook.$self = component;
     return (component[hookSymbol] = hook);
+}
+function removeHook(component) {
+    let hook = component[hookSymbol];
+    delete hook.$self;
+    delete component[hookSymbol];
+    hook = null;
 }
 export function useGlobalHook(hook) {
     if (typeof hook !== "function") {
@@ -195,25 +202,33 @@ function __cycleEffects(cycle, nextCycle) {
     if (typeof cycle === "function") {
         cycleResult = cycle(nextCycle);
     }
-    nextCycle(cycleResult);
+    if (typeof nextCycle === "function") {
+        nextCycle(cycleResult);
+    }
 }
 function __unMountCycle(context) {
     return () => {
-        for (const k of Object.values(EVENT_NAME)) {
+        for (const k of Object.keys(EVENT_NAME)) {
             clearEvent(context, k);
         }
-        // context.$dom.splice(0);
+        context.state.splice(0);
+        for (const child of context.$children.splice(0)) {
+            if (hasHook(child)) {
+                invokeEvent(getHook(child), EVENT_NAME.unMount);
+            }
+        }
+        removeHook(context.$self);
+        for (const k in context) {
+            delete context[k];
+        }
     };
 }
 function __onMountCycle(context) {
-    return (unMount) => {
+    return () => {
         const $dom = context.$dom;
         for (const $item of $dom) {
             $item.update(context.props);
         }
-        boundEvent(context, EVENT_NAME.unMount, (context) => {
-            __cycleEffects(unMount, __unMountCycle(context));
-        });
     };
 }
 
@@ -229,7 +244,9 @@ export function useEffect(context, onCycle, depArray = null) {
                   !depArray.every((el, nth) => el.value === deps[nth.value])
                 : true;
         if (isChange) {
-            __cycleEffects(onCycle, __onMountCycle(context));
+            __cycleEffects(onCycle, (unMount) => {
+                boundEvent(context, EVENT_NAME.unMount, unMount);
+            });
         }
     };
     boundEvent(context, EVENT_NAME.mount, event);
@@ -269,12 +286,12 @@ export function bindHook(render, props = {}) {
         state: [],
         props,
         $dom: [],
-        render() {
-            return render();
-        },
+        $children: [],
+        $self: null,
+        render,
         events: {
-            [EVENT_NAME.mount]: (context) => {},
-            [EVENT_NAME.unMount]: (context) => {},
+            [EVENT_NAME.mount]: [],
+            [EVENT_NAME.unMount]: [],
             [EVENT_NAME.watch]: []
         },
         useState(value) {
@@ -293,6 +310,9 @@ export function bindHook(render, props = {}) {
             return Object.assign(hookContext, fn(hookContext));
         }
     };
+    const events = hookContext.events;
+    events[EVENT_NAME.unMount].push(__unMountCycle(hookContext));
+    events[EVENT_NAME.mount].push(__onMountCycle(hookContext));
     return Object.assign(hookContext, bindGlobalHook(hookContext));
 }
 export const c = (component, props, children) => {
@@ -311,10 +331,11 @@ export const c = (component, props, children) => {
             }
         } else {
             hookContext.$dom = [current];
-            __generateChildren(current, children);
+            hookContext.$children = __generateChildren(current, children);
         }
         setHook(current, hookContext);
         return current;
     };
     return hoc;
 };
+//TODO : suppoprt light renderer

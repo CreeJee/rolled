@@ -13,6 +13,6 @@ interface BaseLiteralElement {
 interface hElement extends HTMLElement,BaseLiteralElement {}
 interface fragmentElement extends DocumentFragment, BaseLiteralElement{}
 export function compile(node: Node): void;
-export default function h(strings: TemplateStringsArray, ...args: any[]): hElement;
+export function h(strings: TemplateStringsArray, ...args: any[]): hElement;
 export function fragmentCompile(node: Node): void;
-export default function fragment(strings: TemplateStringsArray, ...args: any[]): fragmentElement;
+export function fragment(strings: TemplateStringsArray, ...args: any[]): fragmentElement;

@@ -1,9 +1,9 @@
-import { BaseLiteralElement } from "...ts";
+import { BaseLiteralElement } from "../index.ts";
 
 
 type Dispatcher<T> = (p: T) => void
 export class StateObject<T, Dispatcher extends Dispatcher<T>> {
-    get [0](): T;
+    get [0](): Context<T>;
     get [1](): Dispatcher
     *[Symbol.iterator]() {
         yield this[0];
@@ -36,19 +36,17 @@ export function useReducer<T, Action = Object>(
     initialState: T,
     initialAction?: Action,
 ): ReducerResponse<T>;
-
+// TODO : 오모한 T 재거
 export type HookContext<T, PropTypes = any> = {
     state: Array<StateObject<T>>;
     props: PropTypes;
     $dom: Array<BaseLiteralElement>;
-    render() : BaseLiteralElement
-    events: {
-        [EVENT_NAME.mount]: (context) => {},
-        [EVENT_NAME.unMount]: (context) => {},
-        [EVENT_NAME.watch]: Array<Function>
-    },
-    useState<T>(initialValue: T, _lazySetter: (value: T) => T): IHookResponse<T>
-    useEffect<T>(effect: Function, inputs?: Array<StateObject<T>>): void
+    $self: BaseLiteralElement | null;
+    $children: [BaseLiteralElement];
+    render() : BaseLiteralElement;
+    events: __keyableObjects<Function | [Function]>;
+    useState<T>(initialValue: T, _lazySetter: (value: T) => T): IHookResponse<T>;
+    useEffect<T>(effect: Function, inputs?: Array<StateObject<T>>): void;
     useReducer<T, Action = Object>(
         reducer: ReducerInit<T, Action>,
         initialState: T,
@@ -59,17 +57,18 @@ export type HookContext<T, PropTypes = any> = {
 export type hookedType<T extends HookContext, Other> = {
     [Symbol("@@Hook")]: HookContext<T, PropTypes>
 } & Other;
-export type ComponetType<
+export type HOCType<
     T, 
     PropTypes,
     __Props = PropTypes, 
     __HookContext = HookContext<T, __Props>,
     __WellNodeType = hookedType<__HookContext,BaseLiteralElement>
 > = (props: __Props, hookContext: __HookContext) => BaseLiteralElement;
-export type PureComponentType<PropTypes> = (props: PropTypes) => BaseLiteralElement;
-export type ComponentRendererType<T, PropTypes> = ComponetType<T, PropTypes> | PureComponentType<PropTypes>;
 
-export function isHooked(component): Boolean;
+export type PureComponentType<PropTypes> = (props: PropTypes) => BaseLiteralElement;
+export type ComponentRendererType<T, PropTypes> = HOCType<T, PropTypes> | PureComponentType<PropTypes>;
+
+export function hasHook(component): Boolean;
 export function getHook(component): hookContext
 export function useGlobalHook(hook): void
 export function invokeEvent(hookContext, eventName): void

@@ -1,6 +1,7 @@
 
 # rolled
-well hooked & better flow control
+## info
+### well hooked & better flow control
 > if Freak613 wants close this repo, i will archive it...
 > please do not use product... X_X
 
@@ -15,38 +16,31 @@ well hooked & better flow control
         - [ ] batching tasks
           - [x] layout tasks
           - [x] mutation tasks
+            - [x] unMount mutation connect  
           - [ ] testing benchmark
       - [x] useState
       - [x] useEffect
         - [x] on removed all $dom Array in hooks then fired unMount
+      - [x] useReducer
       - [ ] really need?
-        - [x] useContext
+        - [ ] useContext
         - [ ] useRef
         - [ ] useImperativeHandle
         - [ ] useLayoutEffect
         - [ ] useDebugValue
-      - [x] useReducer
-      - [x] component mutation is applied only tags, not component so we will not implements
-        - [x] useCallback
-        - [x] useMemo
+          - [ ] component mutation is applied only tags, not component so we will not implements
+            - [ ] useCallback
+            - [ ] useMemo
     - [ ] like Functional component things
     - [ ] NEW action
-      - [ ] pipe
-      - [ ] combineHook
-      - [ ] genericBounder
       - [x] useHook
       - [x] bindGlobalHook
       - [ ] NEED MORE IDEA....
-    - [ ] [hyperscript](https://github.com/hyperhype/hyperscript) interface in component
-      - [ ] recycle dom values
-    - [ ] layout effects used object item or props values
+    - [x] custom renderer
+    - [x] layout effects used props values
   - [x] support fragment (use documentFragment)
     - [x] reconcile, keyed support
-    - [x] fragment is now added collecting nodes
-    - [ ] h & fragment support template liternals props
-      - [ ] auto marked data
-      - [ ] '
-    - [ ] d.ts
+    - [x] fragment is now added collecting node
 ## doc
 
 ### basic

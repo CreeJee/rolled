@@ -53,7 +53,7 @@ export function reuseNodes(
         if (head) {
             noOp(head, item);
         } else {
-            head = createFn(item);
+            head = createFn(item, i);
             mode
                 ? parent.insertBefore(head, afterNode)
                 : parent.appendChild(head);

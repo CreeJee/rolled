@@ -3,7 +3,7 @@ export default function keyed(
     parent: HTMLElement,
     renderedValues: any[],
     data: any[],
-    createFn: Function,
-    noOp?: Function,
+    createFn: (data: object, nth: Number) => HTMLElement,
+    noOp?: (node: HTMLElement, item: object) => void,
     beforeNode?: Node,
     afterNode?: Node): void;

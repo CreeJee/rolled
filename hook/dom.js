@@ -1,4 +1,4 @@
-import { invokeEvent, isHooked, getHook } from "./basic.js";
+import { invokeEvent, hasHook, getHook } from "./basic.js";
 import { reconcile } from "../base/reconcile.js";
 export class LayoutGenError extends Error {
     constructor(msg) {
@@ -23,33 +23,35 @@ const valueOf = (value) =>
 const updater = (old, view, isUpdate = noOpCond) => {
     //needs bound self
     return function __nestedUpdate__(item) {
-        console.log(item, old);
         const collector = view.collect(this);
         for (const key in collector) {
-            const current = item[key];
-            const before = old[key];
+            const current = valueOf(item[key]);
+            const before = valueOf(old[key]);
             if (current !== before && isUpdate(current, before)) {
                 onUpdate(collector[key], current, key);
-                old[key] = valueOf(item[key]);
+                old[key] = current;
             }
         }
     };
 };
-export const __generateDom = ({ ...item }, itemGroup) => {
-    // const root = itemGroup.cloneNode(true);
-    const root = itemGroup;
-    let rootChild = root.firstChild;
-    let itemChild = itemGroup.firstChild;
-    if (rootChild !== null && itemChild !== null) {
-        do {
-            rootChild.update = updater(item, itemChild);
-            // updater({}, itemChild).call(rootChild, item);
-        } while (
-            (rootChild = rootChild.nextSibling) &&
-            (itemChild = itemChild.nextSibling)
-        );
+export const __bindDom = ({ ...item }, itemGroup) => {
+    switch (itemGroup.nodeType) {
+        case Node.DOCUMENT_FRAGMENT_NODE:
+            let rootChild = itemGroup.firstChild;
+            if (rootChild !== null) {
+                do {
+                    rootChild.update = updater(item, rootChild);
+                    updater({}, rootChild).call(rootChild, item);
+                } while ((rootChild = rootChild.nextSibling));
+            }
+            break;
+        case Node.ELEMENT_NODE:
+            itemGroup.update = updater(item, itemGroup);
+            break;
+        default:
+            throw new LayoutGenError("unacceptable nodes");
     }
-    return root;
+    return itemGroup;
 };
 export const __generateComponent = (item, component) => {
     const view = component(item);
@@ -57,8 +59,8 @@ export const __generateComponent = (item, component) => {
         throw new LayoutGenError("lazy-renderer is not supproted");
     }
     const hook = getHook(view);
-    const isHook = isHooked(view);
-    const rendered = __generateDom(isHook ? hook.props : {}, view);
+    const isHook = hasHook(view);
+    const rendered = __bindDom(isHook ? hook.props : { ...item }, view);
     if (isHook) {
         invokeEvent(getHook(view), "mount");
     }
@@ -66,16 +68,21 @@ export const __generateComponent = (item, component) => {
 };
 export const __generateChildren = (parent, childs, renderer = reconcile) => {
     let renderedItems = [];
+    let components = [];
     parent.update = function(data) {
         renderer(
             parent,
             renderedItems,
             childs,
-            (hoc) => __generateComponent({}, hoc),
+            (hoc, nth) => {
+                const view = __generateComponent({}, hoc);
+                components[nth] = view;
+                return view;
+            },
             (node, item) => node.update(item)
         );
         renderedItems = childs.slice();
     };
     parent.update(childs.slice());
-    return parent;
+    return components;
 };

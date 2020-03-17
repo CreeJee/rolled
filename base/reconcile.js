@@ -45,7 +45,7 @@ export function reconcile(
         let node,
             mode = afterNode !== undefined ? 1 : 0;
         for (let i = 0, len = data.length; i < len; i++) {
-            node = createFn(data[i]);
+            node = createFn(data[i], i);
             mode
                 ? parent.insertBefore(node, afterNode)
                 : parent.appendChild(node);
@@ -149,7 +149,7 @@ export function reconcile(
             let node,
                 mode = afterNode ? 1 : 0;
             while (newStart <= newEnd) {
-                node = createFn(data[newStart]);
+                node = createFn(data[newStart], newStart);
                 mode
                     ? parent.insertBefore(node, afterNode)
                     : parent.appendChild(node);
@@ -203,7 +203,7 @@ export function reconcile(
         let node,
             mode = afterNode ? 1 : 0;
         for (let i = newStart; i <= newEnd; i++) {
-            node = createFn(data[i]);
+            node = createFn(data[i], i);
             mode
                 ? parent.insertBefore(node, afterNode)
                 : parent.appendChild(node);
@@ -235,7 +235,7 @@ export function reconcile(
             lisIdx--;
         } else {
             if (P[i] === -1) {
-                tmpD = createFn(data[i]);
+                tmpD = createFn(data[i], i);
             } else {
                 tmpD = nodes[P[i]];
                 noOp(tmpD, data[i]);
