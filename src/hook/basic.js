@@ -197,6 +197,17 @@ export function useState(context, initValue, _lazySetter) {
     __dispatch(initValue);
     return state;
 }
+export function useLayoutState(context, initValue, _lazySetter) {
+    const state = __stateEffect(
+        context,
+        initValue,
+        _lazySetter,
+        globalEnvironments.layoutTask
+    );
+    const __dispatch = state[1];
+    __dispatch(initValue);
+    return state;
+}
 function __cycleEffects(cycle, nextCycle) {
     let cycleResult = null;
     if (typeof cycle === "function") {

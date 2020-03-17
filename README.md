@@ -5,6 +5,7 @@
 > if Freak613 wants close this repo, i will archive it...
 > please do not use product... X_X
 
+
 ## TODO LIST
 
 1. styled.js
@@ -18,10 +19,12 @@
           - [x] mutation tasks
             - [x] unMount mutation connect  
           - [ ] testing benchmark
-      - [x] useState
-      - [x] useEffect
-        - [x] on removed all $dom Array in hooks then fired unMount
-      - [x] useReducer
+      - [ ] hooks
+        - [x] useState
+        - [x] useEffect
+          - [x] on removed all $dom Array in hooks then fired unMount
+        - [x] useReducer
+      - [ ] useLayoutState
       - [ ] really need?
         - [ ] useContext
         - [ ] useRef

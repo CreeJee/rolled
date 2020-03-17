@@ -4,13 +4,15 @@
     "description": "Dom tools for better logic",
     "main": "index.js",
     "scripts": {
-        "build-prod": "rollup -c"
+        "build-prod": "rollup -c",
+        "generate-doc": "jsdoc -r ./src -d ./doc"
     },
     "author": "CreeJee <000as00060@gmail.com>",
     "license": "MIT",
     "devDependencies": {
         "@babel/core": "7.4.5",
         "@babel/preset-env": "7.4.5",
+        "jsdoc": "^3.6.3",
         "rollup": "1.13.0",
         "rollup-plugin-babel": "^4.4.0",
         "rollup-plugin-minifyliterals": "1.1.0",
