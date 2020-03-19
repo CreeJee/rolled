@@ -19,25 +19,24 @@
           - [x] mutation tasks
             - [x] unMount mutation connect  
           - [ ] testing benchmark
+        - [x] memo
       - [ ] hooks
         - [x] useState
         - [x] useEffect
           - [x] on removed all $dom Array in hooks then fired unMount
         - [x] useReducer
-      - [ ] useLayoutState
+      - [x] useLayoutState
+        - [ ] useCallback
+        - [] useMemo
       - [ ] really need?
-        - [ ] useContext
+        - [x] useContext
         - [ ] useRef
         - [ ] useImperativeHandle
         - [ ] useLayoutEffect
         - [ ] useDebugValue
-          - [ ] component mutation is applied only tags, not component so we will not implements
-            - [ ] useCallback
-            - [ ] useMemo
     - [ ] like Functional component things
     - [ ] NEW action
-      - [x] useHook
-      - [x] bindGlobalHook
+      - [x] useHook.
       - [ ] NEED MORE IDEA....
     - [x] custom renderer
     - [x] layout effects used props values

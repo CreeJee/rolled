@@ -1,24 +1,23 @@
 {
     "name": "rolled",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Dom tools for better logic",
     "main": "index.js",
     "scripts": {
         "build-prod": "rollup -c",
-        "generate-doc": "jsdoc -r ./src -d ./doc"
+        "generate-doc": "typedoc --out docs"
     },
     "author": "CreeJee <000as00060@gmail.com>",
-    "license": "MIT",
+    "license": "BEERWARE",
     "devDependencies": {
         "@babel/core": "7.4.5",
         "@babel/preset-env": "7.4.5",
-        "jsdoc": "^3.6.3",
         "rollup": "1.13.0",
         "rollup-plugin-babel": "^4.4.0",
-        "rollup-plugin-minifyliterals": "1.1.0",
         "rollup-plugin-node-resolve": "5.0.1",
         "rollup-plugin-terser": "^5.1.3",
         "rollup-plugin-uglify": "^6.0.4",
+        "typedoc": "^0.17.1",
         "typescript": "^3.3.1",
         "uglify-es": "3.3.9"
     }

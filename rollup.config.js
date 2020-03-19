@@ -4,7 +4,6 @@ import * as path from "path";
 import babel from "rollup-plugin-babel";
 import resolve from "rollup-plugin-node-resolve";
 import { terser } from "rollup-plugin-terser";
-import minifyliterals from "rollup-plugin-minifyliterals";
 
 const plugins = [
     resolve({
@@ -24,16 +23,16 @@ const plugins = [
 ];
 
 const files = [
-    "index",
-    "base/keyed",
-    "base/reconcile",
-    "base/reuseNodes",
-    "hook/basic",
-    "hook/dom",
-    "hook/index",
-    "hook/taskQueue",
-    "styles",
-    "syntheticEvents"
+    "src/index",
+    "src/base/keyed",
+    "src/base/reconcile",
+    "src/base/reuseNodes",
+    "src/hook/basic",
+    "src/hook/dom",
+    "src/hook/index",
+    "src/hook/taskQueue",
+    "src/styles",
+    "src/syntheticEvents"
 ];
 
 export default files.map((name) => ({

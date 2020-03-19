@@ -1,3 +1,5 @@
+// @ts-nocheck
+// todo: memorized impl
 import { __generateChildren } from "./dom.js";
 import { getAnimationQueue, getTimerQueue, getIdleQueue } from "./taskQueue.js";
 
@@ -59,7 +61,7 @@ class HookError extends Error {
         super(...args);
     }
 }
-const hookSymbol = Symbol("@@Hook");
+export const hookSymbol = Symbol("@@Hook");
 export function hasHook(component) {
     return hookSymbol in component;
 }
@@ -185,9 +187,7 @@ function __stateEffect(
         _tasQueue.add(() => {
             contextValue.value = _lazySetter(contextValue.value);
             invokeEvent(context, EVENT_NAME.mount);
-            // invokeEvent(context, EVENT_NAME.watch);
         });
-        // console.log("settedEnvironments", context);
         return contextValue;
     });
 }
@@ -219,18 +219,35 @@ function __cycleEffects(cycle, nextCycle) {
 }
 function __unMountCycle(context) {
     return () => {
-        for (const k of Object.keys(EVENT_NAME)) {
-            clearEvent(context, k);
-        }
-        context.state.splice(0);
-        for (const child of context.$children.splice(0)) {
-            if (hasHook(child)) {
-                invokeEvent(getHook(child), EVENT_NAME.unMount);
+        /**
+         * 우선 생각을 해볼것이 unMount행위등에따르는것이
+         *
+         * memo에 축적되었을때 다시마운트하느냐
+         * memo 에 한정해서 unMount 없이 캐싱하느냐
+         *
+         * 이고 우선적으로 떠오르는건 1번일지도
+         *
+         * 하자만 1일경우 child를 unMount시킬경우 unMount 시키고 mount시키는것자체가 큰 의미가없게됨
+         *
+         * 사실 엄밀히보면 dom차원의 업데이트이기에 xhr이나 비싼연산아니면 의미가없는데
+         * 2를 하자니 존나더러워질것가틈
+         *
+         *
+         */
+        if (!context.isMemo) {
+            for (const k of Object.keys(EVENT_NAME)) {
+                clearEvent(context, k);
             }
-        }
-        removeHook(context.$self);
-        for (const k in context) {
-            delete context[k];
+            context.state.splice(0);
+            for (const child of context.$children.splice(0)) {
+                if (hasHook(child)) {
+                    invokeEvent(getHook(child), EVENT_NAME.unMount);
+                }
+            }
+            removeHook(context.$self);
+            for (const k in context) {
+                delete context[k];
+            }
         }
     };
 }
@@ -280,7 +297,31 @@ export function useReducer(context, reducer, initState, init) {
     };
     return new StateObject(() => currentState, dispatcher);
 }
-
+export function memo(component, memorizedSymbol = Symbol.for("@@Memo")) {
+    if (typeof component !== "function") {
+        throw new Error(`memorized component should be function`);
+    }
+    // TODO: use Map
+    if (typeof component[memorizedSymbol] !== "object") {
+        component[memorizedSymbol] = new Map();
+    }
+    return (...arg) => {
+        const memo = component[memorizedSymbol];
+        // 재대로된 serialize방식을 가질것
+        const key = JSON.stringify(arg);
+        if (key.has(memo)) {
+            return memo.get(key);
+        } else {
+            const value = component(...arg);
+            if (hasHook(value)) {
+                getHook(value).isMemo = true;
+            }
+            memo.set(key, value);
+            return value;
+        }
+    };
+}
+// export function useMemo() {}
 export function combineReducers(reducerObject) {
     const entryKeys = Object.keys(reducerObject);
     return () => {
@@ -292,14 +333,14 @@ export function combineReducers(reducerObject) {
         return temp;
     };
 }
-export function bindHook(render, props = {}) {
+export function bindHook(props = {}) {
     const hookContext = {
         state: [],
         props,
         $dom: [],
         $children: [],
         $self: null,
-        render,
+        isMemo: false,
         events: {
             [EVENT_NAME.mount]: [],
             [EVENT_NAME.unMount]: [],
@@ -314,9 +355,6 @@ export function bindHook(render, props = {}) {
         useReducer(...arg) {
             return useReducer(hookContext, ...arg);
         },
-        //전역으로서 봐야할지
-        //middleware로서 전체바인딩을 해야할지 난제이다
-
         useHook(fn) {
             return Object.assign(hookContext, fn(hookContext));
         }

@@ -13,7 +13,7 @@ const TREE_WALKER = document.createTreeWalker(
 );
 const compilerTemplate = document.createElement("template");
 const collector = (node) => {
-    if (node.nodeType !== 3) {
+    if (node.nodeType !== Node.TEXT_NODE) {
         if (node.attributes !== undefined) {
             for (let attr of Array.from(node.attributes)) {
                 let aname = attr.name;
