@@ -59,7 +59,7 @@ TREE_WALKER.roll = function(n) {
     return this.currentNode;
 };
 
-function walker(node) {
+function walker(node = this) {
     const refs = {};
     const w = TREE_WALKER;
 

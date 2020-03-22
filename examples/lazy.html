@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <title>rolled - test</title>
+    </head>
+    <body>
+        <div id="app"></div>
+        <script type="module">
+            import { fragment, h } from "/src/index.js";
+            import { render } from "/src/hook/index.js";
+            import { c, lazy } from "/src/hook/basic.js";
+            const Parent = () => {
+                return h`
+                    <div class='parent'>
+                        #name
+                        <p>
+                            #children
+                        </p>
+                    </div>
+                `;
+            };
+            const lazyComponent = lazy(
+                () => {
+                    return new Promise((resolve, reject) => {
+                        setTimeout(() => {
+                            resolve((props, { useState, useEffect }) => {
+                                const [state, setState] = useState(
+                                    "lazy loading complete"
+                                );
+                                useEffect(() => {
+                                    props.stateText = state;
+                                });
+                                setTimeout(() => {
+                                    setState("state changed!!!");
+                                }, 1000);
+                                return h`<div class='lazy completed'>#stateText</div>`;
+                            });
+                        }, 1000);
+                    });
+                },
+                () => h`<p>loading</p>`
+            );
+
+            render(
+                document.getElementById("app"),
+                c(Parent, { name: "foo" }, [
+                    // c(Parent, { name: "bar" })
+                    c(lazyComponent, {})
+                ])
+            );
+        </script>
+    </body>
+</html>

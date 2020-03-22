@@ -1,8 +1,10 @@
-export default function reconcile(
+export function reconcile(
     parent: HTMLElement,
     renderedValues: any[],
     data: any[],
     createFn: (data: object, nth: Number) => HTMLElement,
     noOp?: (node: HTMLElement, item: object) => void,
     beforeNode?: Node,
-    afterNode?: Node): void;
+    afterNode?: Node
+    ): void;
+export default reconcile;

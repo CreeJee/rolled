@@ -1,156 +1,31 @@
-// @ts-nocheck
-// todo: memorized impl
-import { __generateChildren } from "./dom.js";
+import {
+    __generateChildren,
+    LayoutGenError,
+    __generateComponent,
+    __bindDom
+} from "./dom.js";
+import {
+    HookError,
+    StateObject,
+    Context,
+    hasHook,
+    getHook,
+    removeHook,
+    bindGlobalHook,
+    setHook
+} from "./core.js";
+import { h } from "../index.js";
 import { getAnimationQueue, getTimerQueue, getIdleQueue } from "./taskQueue.js";
+import { invokeEvent, EVENT_NAME, clearEvent, boundEvent } from "./event.js";
 
-const generateMemoryKey = () => Object.create(null);
-const globalEnvironments = {
-    stateTask: getIdleQueue(),
-    layoutTask: getAnimationQueue(),
-    hooksMiddleWare: []
-};
-const __Context_Getter = (target, prop, receiver) => {
-    const pureValue = target.value;
-    return Reflect.get(
-        typeof pureValue === "object" && prop in pureValue
-            ? target.value
-            : target,
-        prop,
-        receiver
-    );
-};
-class Context {
-    constructor(value, nth) {
-        this.value = value;
-        this.nth = nth;
-        return new Proxy(this, {
-            get: __Context_Getter
-        });
-    }
-    toString() {
-        return this.value.toString();
-    }
-    valueOf() {
-        return this.value;
-    }
-    [Symbol.toPrimitive]() {
-        return this.value;
-    }
-    static convert(value, nth) {
-        return new Context(value, nth);
-    }
-}
-class StateObject {
-    constructor(getter, dispatcher) {
-        Object.defineProperties(this, {
-            0: {
-                get: getter
-            },
-            1: {
-                get: () => dispatcher
-            }
-        });
-    }
-    *[Symbol.iterator]() {
-        yield this[0];
-        yield this[1];
-    }
-}
-class HookError extends Error {
-    constructor(...args) {
-        super(...args);
-    }
-}
-export const hookSymbol = Symbol("@@Hook");
-export function hasHook(component) {
-    return hookSymbol in component;
-}
-export function getHook(component) {
-    return component[hookSymbol];
-}
-function setHook(component, hook) {
-    hook.$self = component;
-    return (component[hookSymbol] = hook);
-}
-function removeHook(component) {
-    let hook = component[hookSymbol];
-    delete hook.$self;
-    delete component[hookSymbol];
-    hook = null;
-}
-export function useGlobalHook(hook) {
-    if (typeof hook !== "function") {
-        throw new HookError("custom hook middleware is must function");
-    }
-    globalEnvironments.hooksMiddleWare.push(hook);
-}
-function bindGlobalHook(hook) {
-    return globalEnvironments.hooksMiddleWare.reduce((accr, handler) => {
-        const initResult = handler(hook) || {};
-        const handlers = Object.values(initResult);
-        if (
-            typeof initResult === "object" &&
-            handlers.every((v) => typeof v === "function")
-        ) {
-            Object.assign(accr, initResult);
-        } else {
-            throw new HookError(
-                "custom hook middleware result is must object & each element is must function"
-            );
-        }
-        return accr;
-    }, {});
-}
-//event
-const EVENT_NAME = {
-    unMount: "unMount",
-    mount: "mount",
-    watch: Symbol("WATCHED_EVENT")
-};
-function expectEvent(context, eventName) {
-    if (
-        context &&
-        typeof context === "object" &&
-        context !== null &&
-        eventName in EVENT_NAME
-    ) {
-        return;
-    }
-    throw new HookError(`${eventName.toString()} is not supported Event`);
-}
-export function invokeEvent(hookContext, eventName) {
-    expectEvent(hookContext, eventName);
-    const item = hookContext.events[eventName];
-    if (typeof item === "function") {
-        return item(hookContext);
-    }
-    if (Array.isArray(item)) {
-        for (let index = 0; index < item.length; index++) {
-            item[index](hookContext);
-        }
-    }
-}
-function boundEvent(context, eventName, value) {
-    expectEvent(context, eventName);
-    const events = context.events;
-    const item = events[eventName];
-    if (Array.isArray(item)) {
-        item.push(value);
-    } else {
-        events[eventName] = value;
-    }
-}
-function clearEvent(context, eventName) {
-    expectEvent(context, eventName);
-    const events = context.events;
-    const item = events[eventName];
-    if (Array.isArray(item)) {
-        item.splice(0);
-    } else {
-        events[eventName] = () => {};
-    }
-}
+//d.ts 잠제적 migrate
+export * from "./core.js";
+export * from "./event.js";
+const stateTask = getIdleQueue();
+const layoutTask = getAnimationQueue();
+const __channelMap = new Map();
 
+//effects layout
 function __stateLayout(context, initValue, setter) {
     const state = context.state;
     const nth = state.length;
@@ -171,7 +46,6 @@ function __stateLayout(context, initValue, setter) {
     }
     return temp;
 }
-//TODO : lazy initValue (typeof initValue === 'function')
 function _lazySetter__useEffect(value) {
     return value;
 }
@@ -181,7 +55,7 @@ function __stateEffect(
     _lazySetter = typeof initValue === "function"
         ? initValue
         : _lazySetter__useEffect,
-    _tasQueue = globalEnvironments.stateTask
+    _tasQueue = stateTask
 ) {
     return __stateLayout(context, initValue, (contextValue) => {
         _tasQueue.add(() => {
@@ -191,23 +65,7 @@ function __stateEffect(
         return contextValue;
     });
 }
-export function useState(context, initValue, _lazySetter) {
-    const state = __stateEffect(context, initValue, _lazySetter);
-    const __dispatch = state[1];
-    __dispatch(initValue);
-    return state;
-}
-export function useLayoutState(context, initValue, _lazySetter) {
-    const state = __stateEffect(
-        context,
-        initValue,
-        _lazySetter,
-        globalEnvironments.layoutTask
-    );
-    const __dispatch = state[1];
-    __dispatch(initValue);
-    return state;
-}
+//cycle
 function __cycleEffects(cycle, nextCycle) {
     let cycleResult = null;
     if (typeof cycle === "function") {
@@ -259,44 +117,10 @@ function __onMountCycle(context) {
         }
     };
 }
-
-export function useEffect(context, onCycle, depArray = null) {
-    const deps = depArray.filter((dep) => dep instanceof Context);
-    if (!Array.isArray(depArray) && depArray !== null) {
-        throw new HookError("dep is must Array or null");
-    }
-    const event = (context) => {
-        const isChange =
-            deps.length > 0 && depArray
-                ? // 비교필요
-                  !depArray.every((el, nth) => el.value === deps[nth.value])
-                : true;
-        if (isChange) {
-            __cycleEffects(onCycle, (unMount) => {
-                boundEvent(context, EVENT_NAME.unMount, unMount);
-            });
-        }
-    };
-    boundEvent(context, EVENT_NAME.mount, event);
-}
-//it will be removed...?
-export function useContext(value) {
-    return Context.convert(value);
-}
-
 function invokeReducer(reducer, state = {}, param = {}) {
     return reducer(state, param);
 }
-export function useReducer(context, reducer, initState, init) {
-    const baseState = typeof init === "function" ? init(initState) : initState;
-    const contextedState = __stateEffect(context, baseState);
-    const [currentState, __dispatch] = contextedState;
-    const dispatcher = (param) => {
-        const result = invokeReducer(reducer, currentState, param);
-        __dispatch(result);
-    };
-    return new StateObject(() => currentState, dispatcher);
-}
+//hook utils
 export function memo(component, memorizedSymbol = Symbol.for("@@Memo")) {
     if (typeof component !== "function") {
         throw new Error(`memorized component should be function`);
@@ -309,7 +133,7 @@ export function memo(component, memorizedSymbol = Symbol.for("@@Memo")) {
         const memo = component[memorizedSymbol];
         // 재대로된 serialize방식을 가질것
         const key = JSON.stringify(arg);
-        if (key.has(memo)) {
+        if (memo.has(key)) {
             return memo.get(key);
         } else {
             const value = component(...arg);
@@ -321,7 +145,35 @@ export function memo(component, memorizedSymbol = Symbol.for("@@Memo")) {
         }
     };
 }
-// export function useMemo() {}
+export class LazyComponent {
+    constructor(load, loadingComponent) {
+        load.then((LoadedComponent) => {
+            const $parent = this.current.parentNode;
+            const isHook = hasHook(this.current);
+            const hook = isHook ? getHook(this.current) : null;
+            let current = isHook
+                ? __moveHook(hook, LoadedComponent)
+                : LoadedComponent(...this.props);
+            $parent.insertBefore(current, this.current);
+            this.current.remove();
+            this.current = current;
+        });
+        if (typeof loadingComponent !== "function") {
+            throw new LayoutGenError("loading component must function");
+        }
+        this.loading = (...args) => {
+            this.props = args;
+            return (this.current = loadingComponent(...args));
+        };
+    }
+}
+function __defaultLazy() {
+    //TODO: generate component
+    return h`<empty></empty>`;
+}
+export function lazy(load, loading = __defaultLazy) {
+    return new LazyComponent(Promise.resolve(load()), loading);
+}
 export function combineReducers(reducerObject) {
     const entryKeys = Object.keys(reducerObject);
     return () => {
@@ -333,10 +185,89 @@ export function combineReducers(reducerObject) {
         return temp;
     };
 }
-export function bindHook(props = {}) {
+// hooks
+export function useState(context, initValue, _lazySetter) {
+    const state = __stateEffect(context, initValue, _lazySetter);
+    const __dispatch = state[1];
+    __dispatch(initValue);
+    return state;
+}
+export function useLayoutState(context, initValue, _lazySetter) {
+    const state = __stateEffect(context, initValue, _lazySetter, layoutTask);
+    const __dispatch = state[1];
+    __dispatch(initValue);
+    return state;
+}
+export function useEffect(context, onCycle, depArray = []) {
+    const deps = depArray.filter((dep) => dep instanceof Context);
+    if (!Array.isArray(depArray)) {
+        throw new HookError("dep is must Array or null");
+    }
+    const event = (context) => {
+        const isChange =
+            deps.length > 0 && depArray
+                ? // 비교필요
+                  !depArray.every((el, nth) => el.value === deps[nth])
+                : true;
+        if (isChange) {
+            __cycleEffects(onCycle, (unMount) => {
+                boundEvent(context, EVENT_NAME.unMount, unMount);
+            });
+        }
+    };
+    boundEvent(context, EVENT_NAME.mount, event);
+}
+export function useContext(value) {
+    return Context.convert(value);
+}
+
+export function useReducer(context, reducer, initState, init) {
+    const baseState = typeof init === "function" ? init(initState) : initState;
+    const contextedState = __stateEffect(context, baseState);
+    const [currentState, __dispatch] = contextedState;
+    const dispatcher = (param) => {
+        const result = invokeReducer(reducer, currentState, param);
+        __dispatch(result);
+    };
+    return new StateObject(() => currentState, dispatcher);
+}
+// export function useMemo(context, onCycle, deps) {}
+
+// channel might be string|symbol
+//gc에 대해서 해결할 필요가이씀
+class ChannelStruct extends Array {
+    constructor(context, initValue) {
+        super(context);
+        this.state = useState(initValue);
+    }
+}
+export function useChannel(context, channel, onObserve, __initValue = null) {
+    let channelObj = null;
+    if (!__channelMap.has(channel)) {
+        const channelObj = new ChannelStruct(context, __initValue);
+        const [state] = channelObj.state;
+        useEffect(
+            context,
+            () => {
+                for (let index = 0; index < channelObj.length; index++) {
+                    const handler = channelObj[index];
+                    handler(state);
+                }
+            },
+            [state]
+        );
+        __channelMap.set(channel, channelObj);
+    }
+    channelObj = __channelMap.get(channel);
+    channelObj.push(onObserve);
+    return channelObj.state;
+}
+//bound hooks
+export function bindHook(props = {}, children) {
     const hookContext = {
         state: [],
         props,
+        children,
         $dom: [],
         $children: [],
         $self: null,
@@ -344,6 +275,8 @@ export function bindHook(props = {}) {
         events: {
             [EVENT_NAME.mount]: [],
             [EVENT_NAME.unMount]: [],
+            [EVENT_NAME.$mount]: [],
+            [EVENT_NAME.$unMount]: [],
             [EVENT_NAME.watch]: []
         },
         useState(value) {
@@ -357,34 +290,72 @@ export function bindHook(props = {}) {
         },
         useHook(fn) {
             return Object.assign(hookContext, fn(hookContext));
+        },
+        useChannel(channel, onObserve, __initValue) {
+            return useChannel(hookContext, channel, onObserve, __initValue);
         }
     };
     const events = hookContext.events;
-    events[EVENT_NAME.unMount].push(__unMountCycle(hookContext));
-    events[EVENT_NAME.mount].push(__onMountCycle(hookContext));
+    events[EVENT_NAME.$mount].push(__onMountCycle(hookContext));
+    events[EVENT_NAME.$unMount].push(__unMountCycle(hookContext));
     return Object.assign(hookContext, bindGlobalHook(hookContext));
 }
-export const c = (component, props, children) => {
+export function __compileComponent(component, tagProps, hookContext, children) {
+    const current = component(tagProps, hookContext);
+    const needChild = Array.isArray(children);
+    if (!(current instanceof Node)) {
+        throw new HookError("render function is must node");
+    }
+    if (current.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+        hookContext.$dom = Array.from(current.childNodes);
+        if (needChild && children.length > 0) {
+            throw new HookError("fragment-child is not support");
+        }
+    } else {
+        hookContext.$dom = [current];
+        if (needChild) {
+            let slot = current.collect().children;
+            switch (
+                typeof slot === "object" && "nodeType" in slot
+                    ? slot.nodeType
+                    : -Infinity
+            ) {
+                case Node.TEXT_NODE:
+                    let parent = slot.parentElement;
+                    slot.remove();
+                    slot = parent;
+                    break;
+                case Node.ELEMENT_NODE:
+                    break;
+                default:
+                    slot = current;
+                    break;
+            }
+            hookContext.$children = __generateChildren(slot, children);
+        }
+    }
+    return current;
+}
+
+function __moveHook(oldHook, component) {
+    const generated = __bindDom(
+        { ...oldHook.props },
+        c(component, oldHook.props, oldHook.children)()
+    );
+    return generated;
+}
+export const c = (component, props = {}, children) => {
     const hoc = (item) => {
         const tagProps = { ...props };
-        const hookContext = bindHook(component, tagProps);
-        const current = component(tagProps, hookContext);
-
-        if (!(current instanceof Node)) {
-            throw new HookError("render function is must node");
-        }
-        if (current.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-            hookContext.$dom = Array.from(current.childNodes);
-            if (Array.isArray(children) && children.length > 0) {
-                throw new HookError("fragment-child is not support");
-            }
-        } else {
-            hookContext.$dom = [current];
-            hookContext.$children = __generateChildren(current, children);
-        }
+        const hookContext = bindHook(tagProps, children);
+        const current = __compileComponent(
+            component instanceof LazyComponent ? component.loading : component,
+            tagProps,
+            hookContext,
+            children
+        );
         setHook(current, hookContext);
         return current;
     };
     return hoc;
 };
-//TODO : suppoprt light renderer

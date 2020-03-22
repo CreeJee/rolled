@@ -20,15 +20,18 @@
             - [x] unMount mutation connect  
           - [ ] testing benchmark
         - [x] memo
+        - [x] lazy
+        - [ ] slot support
+          - [ ] example ```javascirpt h`<div>#children</div>` ```
       - [ ] hooks
         - [x] useState
         - [x] useEffect
           - [x] on removed all $dom Array in hooks then fired unMount
         - [x] useReducer
       - [x] useLayoutState
-        - [ ] useCallback
-        - [] useMemo
       - [ ] really need?
+        - [ ] useCallback
+        - [ ] useMemo
         - [x] useContext
         - [ ] useRef
         - [ ] useImperativeHandle
@@ -36,7 +39,8 @@
         - [ ] useDebugValue
     - [ ] like Functional component things
     - [ ] NEW action
-      - [x] useHook.
+      - [x] useHook
+      - [x] useChannel(channel: string|symbol) => [currentContext, send => {}]
       - [ ] NEED MORE IDEA....
     - [x] custom renderer
     - [x] layout effects used props values
