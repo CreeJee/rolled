@@ -52,7 +52,7 @@ class TaskQueue {
     }
     exec() {
         for (const { task, param } of this.tasks.splice(0)) {
-            task(param);
+            task(...param);
         }
     }
 }

@@ -1,11 +1,6 @@
-import { hasHook, getHook } from "./core.js";
+import { hasHook, getHook, LayoutGenError } from "./core.js";
 import { reconcile } from "../base/reconcile.js";
 import { invokeEvent } from "./event.js";
-export class LayoutGenError extends Error {
-    constructor(msg) {
-        super(msg);
-    }
-}
 const onUpdate = (node, current, key) => {
     switch (node.nodeType) {
         case Node.ELEMENT_NODE:
@@ -68,6 +63,52 @@ export const __generateComponent = (item, component) => {
     }
     return rendered;
 };
+export const __forceGenerateTags = (
+    parent,
+    renderedItems,
+    childs,
+    refCollector = [],
+    renderer = reconcile
+) => {
+    renderer(
+        parent,
+        renderedItems,
+        childs,
+        (hoc, nth) => {
+            const view = __generateComponent({}, hoc);
+            // tricky solution
+            // @ts-ignore
+            refCollector[nth] = view;
+            return view;
+        },
+        (node, item) => node.update(item)
+    );
+    return refCollector;
+};
+// export const __generateChildren = (parent, childs, renderer) => {
+//     let renderedItems = [];
+//     let components = [];
+//     if (Array.isArray(childs)) {
+//         if (childs.length > 0 && parent.childNodes.length > 0) {
+//             throw new LayoutGenError(
+//                 "child node is already exists might be work wrong"
+//             );
+//         }
+//         parent.update = function(data) {
+//             __forceGenerateTags(
+//                 parent,
+//                 renderedItems,
+//                 childs,
+//                 components,
+//                 renderer
+//             );
+//             renderedItems = childs.slice();
+//         };
+//         parent.update();
+//     }
+//     return components;
+// };
+
 export const __generateChildren = (parent, childs, renderer = reconcile) => {
     let renderedItems = [];
     let components = [];

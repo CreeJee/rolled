@@ -1,2 +1,3 @@
-import {ComponentRenderer} from "./basic"
-export function render(parent: HTMLElement, component: ComponentRenderer<any>): HTMLElement
+import {RendererType} from "./basic"
+
+export function render(parent: HTMLElement, component: RendererType<any>): HTMLElement

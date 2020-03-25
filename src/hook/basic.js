@@ -1,11 +1,12 @@
 import {
     __generateChildren,
-    LayoutGenError,
     __generateComponent,
-    __bindDom
+    __bindDom,
+    __forceGenerateTags
 } from "./dom.js";
 import {
     HookError,
+    LayoutGenError,
     StateObject,
     Context,
     hasHook,
@@ -36,7 +37,6 @@ function __stateLayout(context, initValue, setter) {
             let contextValue = state[nth];
             contextValue.value = value;
             if (typeof setter === "function") {
-                //is it really nessary setter?
                 setter(contextValue);
             }
         }
@@ -55,10 +55,10 @@ function __stateEffect(
     _lazySetter = typeof initValue === "function"
         ? initValue
         : _lazySetter__useEffect,
-    _tasQueue = stateTask
+    _taskQueue = stateTask
 ) {
     return __stateLayout(context, initValue, (contextValue) => {
-        _tasQueue.add(() => {
+        _taskQueue.add(() => {
             contextValue.value = _lazySetter(contextValue.value);
             invokeEvent(context, EVENT_NAME.mount);
         });
@@ -107,6 +107,7 @@ function __unMountCycle(context) {
                 delete context[k];
             }
         }
+        context.isMounted = false;
     };
 }
 function __onMountCycle(context) {
@@ -115,11 +116,135 @@ function __onMountCycle(context) {
         for (const $item of $dom) {
             $item.update(context.props);
         }
+        context.isMounted = true;
     };
 }
 function invokeReducer(reducer, state = {}, param = {}) {
     return reducer(state, param);
 }
+export function combineReducers(reducerObject) {
+    const entryKeys = Object.keys(reducerObject);
+    return () => {
+        const temp = {};
+        for (let index = 0; index < entryKeys.length; index++) {
+            const key = entryKeys[index];
+            temp[key] = invokeReducer(reducerObject[key]);
+        }
+        return temp;
+    };
+}
+// hooks
+export function useState(context, initValue, _lazySetter) {
+    const state = __stateEffect(context, initValue, _lazySetter);
+    const __dispatch = state[1];
+    __dispatch(initValue);
+    return state;
+}
+export function useLayoutState(context, initValue, _lazySetter) {
+    const state = __stateEffect(context, initValue, _lazySetter, layoutTask);
+    const __dispatch = state[1];
+    __dispatch(initValue);
+    return state;
+}
+export function useEffect(context, onCycle, depArray = []) {
+    if (!Array.isArray(depArray)) {
+        throw new HookError("dep is must Array or null");
+    }
+    const deps = depArray.filter((dep) => dep instanceof Context);
+    const event = (context) => {
+        const isChange = context.isMounted
+            ? // 비교필요
+              !depArray.every((el, nth) => el.value === deps[nth])
+            : true;
+
+        if (isChange) {
+            __cycleEffects(onCycle, (unMount) => {
+                boundEvent(context, EVENT_NAME.unMount, unMount);
+            });
+        }
+    };
+    boundEvent(context, EVENT_NAME.mount, event);
+}
+export function useContext(value) {
+    return Context.convert(value);
+}
+
+export function useReducer(context, reducer, initState, init) {
+    const baseState = typeof init === "function" ? init(initState) : initState;
+    const contextedState = __stateEffect(context, baseState);
+    const [currentState, __dispatch] = contextedState;
+    const dispatcher = (param) => {
+        const result = invokeReducer(reducer, currentState, param);
+        __dispatch(result);
+    };
+    return new StateObject(() => currentState, dispatcher);
+}
+// export function useMemo(context, onCycle, deps) {}
+
+//gc에 대해서 해결할 필요가이씀
+class ChannelStruct extends Array {
+    constructor(context, initValue) {
+        super();
+        // const state = useState(context, initValue);
+        // this.state = new StateObject(
+        //     () => state[0],
+        //     (value) => void (state[0].value = value)
+        // );
+        this.state = useState(context, initValue);
+    }
+}
+export function useChannel(context, channel, initValue = null, onObserve) {
+    let channelObj = null;
+    if (!__channelMap.has(channel)) {
+        const channelObj = new ChannelStruct(context, initValue);
+        const [state] = channelObj.state;
+        useEffect(
+            context,
+            () => {
+                for (let index = 0; index < channelObj.length; index++) {
+                    const handler = channelObj[index];
+                    handler(state.value);
+                }
+            },
+            [state]
+        );
+        __channelMap.set(channel, channelObj);
+    }
+    channelObj = __channelMap.get(channel);
+    if (typeof onObserve === "function") {
+        channelObj.push(onObserve);
+    }
+    //todo: cycle leak
+    return channelObj.state;
+}
+//this function is generic util
+export function reactiveMount(context, refName, componentTree) {
+    const refs = context.$self.collect();
+    const reactiveSymbol = Symbol.for(`@@reactiveMountedTag`);
+    refName = refName.toLowerCase();
+    if (!(refName in refs)) {
+        throw new LayoutGenError(`Ref "${refName}" must contains component`);
+    }
+    if (!Array.isArray(componentTree)) {
+        throw new LayoutGenError(`ComponentTree is must Array`);
+    }
+    const refTag = refs[refName];
+    if (!Array.isArray(refTag[reactiveSymbol])) {
+        Object.defineProperty(refTag, reactiveSymbol, {
+            writable: false,
+            enumerable: false,
+            configurable: false,
+            value: []
+        });
+    }
+    const renderedItems = refTag[reactiveSymbol];
+    renderedItems.splice(
+        0,
+        renderedItems.length,
+        ...__forceGenerateTags(refTag, refTag[reactiveSymbol], componentTree)
+    );
+}
+
 //hook utils
 export function memo(component, memorizedSymbol = Symbol.for("@@Memo")) {
     if (typeof component !== "function") {
@@ -174,104 +299,18 @@ function __defaultLazy() {
 export function lazy(load, loading = __defaultLazy) {
     return new LazyComponent(Promise.resolve(load()), loading);
 }
-export function combineReducers(reducerObject) {
-    const entryKeys = Object.keys(reducerObject);
-    return () => {
-        const temp = {};
-        for (let index = 0; index < entryKeys.length; index++) {
-            const key = entryKeys[index];
-            temp[key] = invokeReducer(reducerObject[key]);
-        }
-        return temp;
-    };
-}
-// hooks
-export function useState(context, initValue, _lazySetter) {
-    const state = __stateEffect(context, initValue, _lazySetter);
-    const __dispatch = state[1];
-    __dispatch(initValue);
-    return state;
-}
-export function useLayoutState(context, initValue, _lazySetter) {
-    const state = __stateEffect(context, initValue, _lazySetter, layoutTask);
-    const __dispatch = state[1];
-    __dispatch(initValue);
-    return state;
-}
-export function useEffect(context, onCycle, depArray = []) {
-    const deps = depArray.filter((dep) => dep instanceof Context);
-    if (!Array.isArray(depArray)) {
-        throw new HookError("dep is must Array or null");
-    }
-    const event = (context) => {
-        const isChange =
-            deps.length > 0 && depArray
-                ? // 비교필요
-                  !depArray.every((el, nth) => el.value === deps[nth])
-                : true;
-        if (isChange) {
-            __cycleEffects(onCycle, (unMount) => {
-                boundEvent(context, EVENT_NAME.unMount, unMount);
-            });
-        }
-    };
-    boundEvent(context, EVENT_NAME.mount, event);
-}
-export function useContext(value) {
-    return Context.convert(value);
-}
-
-export function useReducer(context, reducer, initState, init) {
-    const baseState = typeof init === "function" ? init(initState) : initState;
-    const contextedState = __stateEffect(context, baseState);
-    const [currentState, __dispatch] = contextedState;
-    const dispatcher = (param) => {
-        const result = invokeReducer(reducer, currentState, param);
-        __dispatch(result);
-    };
-    return new StateObject(() => currentState, dispatcher);
-}
-// export function useMemo(context, onCycle, deps) {}
-
-// channel might be string|symbol
-//gc에 대해서 해결할 필요가이씀
-class ChannelStruct extends Array {
-    constructor(context, initValue) {
-        super(context);
-        this.state = useState(initValue);
-    }
-}
-export function useChannel(context, channel, onObserve, __initValue = null) {
-    let channelObj = null;
-    if (!__channelMap.has(channel)) {
-        const channelObj = new ChannelStruct(context, __initValue);
-        const [state] = channelObj.state;
-        useEffect(
-            context,
-            () => {
-                for (let index = 0; index < channelObj.length; index++) {
-                    const handler = channelObj[index];
-                    handler(state);
-                }
-            },
-            [state]
-        );
-        __channelMap.set(channel, channelObj);
-    }
-    channelObj = __channelMap.get(channel);
-    channelObj.push(onObserve);
-    return channelObj.state;
-}
 //bound hooks
 export function bindHook(props = {}, children) {
     const hookContext = {
         state: [],
         props,
         children,
+        isMemo: false,
+        isMounted: false,
         $dom: [],
         $children: [],
         $self: null,
-        isMemo: false,
+        $slot: null,
         events: {
             [EVENT_NAME.mount]: [],
             [EVENT_NAME.unMount]: [],
@@ -291,8 +330,11 @@ export function bindHook(props = {}, children) {
         useHook(fn) {
             return Object.assign(hookContext, fn(hookContext));
         },
-        useChannel(channel, onObserve, __initValue) {
-            return useChannel(hookContext, channel, onObserve, __initValue);
+        useChannel(channel, initValue, onObserve) {
+            return useChannel(hookContext, channel, initValue, onObserve);
+        },
+        reactiveMount(refName, componentTree) {
+            return reactiveMount(hookContext, refName, componentTree);
         }
     };
     const events = hookContext.events;
@@ -324,6 +366,11 @@ export function __compileComponent(component, tagProps, hookContext, children) {
                     let parent = slot.parentElement;
                     slot.remove();
                     slot = parent;
+                    if (slot.hasChildNodes()) {
+                        throw new LayoutGenError(
+                            "fragemnt-layout-generate is yet supported"
+                        );
+                    }
                     break;
                 case Node.ELEMENT_NODE:
                     break;
@@ -331,12 +378,12 @@ export function __compileComponent(component, tagProps, hookContext, children) {
                     slot = current;
                     break;
             }
+            hookContext.$slot = slot;
             hookContext.$children = __generateChildren(slot, children);
         }
     }
     return current;
 }
-
 function __moveHook(oldHook, component) {
     const generated = __bindDom(
         { ...oldHook.props },

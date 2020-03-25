@@ -46,11 +46,20 @@ export class StateObject {
         yield this[1];
     }
 }
+
+// Errors
+export class LayoutGenError extends Error {
+    constructor(msg) {
+        super(msg);
+    }
+}
+
 export class HookError extends Error {
     constructor(...args) {
         super(...args);
     }
 }
+//hook
 export const hookSymbol = Symbol("@@Hook");
 export function hasHook(component) {
     return hookSymbol in component;

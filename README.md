@@ -41,6 +41,7 @@
     - [ ] NEW action
       - [x] useHook
       - [x] useChannel(channel: string|symbol) => [currentContext, send => {}]
+      - [x] reactiveMount
       - [ ] NEED MORE IDEA....
     - [x] custom renderer
     - [x] layout effects used props values
@@ -54,6 +55,8 @@ examples in '/examples/test.html'
 
 ### hook
 examples in '/examples/useRecolience.html'
+
+## example project
 
 ## License
 [stage0 License](https://github.com/Freak613/stage0/blob/master/LICENSE)

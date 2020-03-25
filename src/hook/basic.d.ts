@@ -17,6 +17,9 @@ export class Context<T> {
     [Symbol.toPrimitive](): T
     static convert<T>(value: any, nth: number): Context<T>
 }
+export class ChannelStruct<T> extends Array<HookContext> {
+    state: StateObject<T>
+}
 type IHookResponse<T, Dispatch extends Dispatcher<T> = Dispatcher<T>> = StateObject<T, Dispatch>
 type StateResponse<T> = IHookResponse<T, (newState: T) => void>;
 type ReducerResponse<T> = IHookResponse<T, (action: Object) => void>;
@@ -25,10 +28,13 @@ type __keyableTypes = (string | symbol);
 type __keyableObjects<T> = {
     [key in __keyableTypes]: T
 }
-type HookResolver = __keyableObjects<Function>;
+type __lazySetter<T> = () => T;
+type __lazyValue<T> = T | __lazySetter<T>;
+//TODO return type should generic
+type HookResolver<PropTypes, ReturnType = any> = (hook: HookContext<PropTypes>) => __keyableObjects<ReturnType>;
 type ReducerObject<State, Action extends object> = __keyableObjects<ReducerInit<State, Action>>;
 
-export function useState<T>(context: Context<T>, initialValue: T, _lazySetter: (value: T) => T): StateResponse<T>;
+export function useState<T>(context: Context<T>, initialValue: __lazyValue<T>): StateResponse<T>;
 export function useEffect<T>(context: Context<T>, effect: Function, inputs?: Array<Context<any>>): void;
 export function useContext<T>(value: T): Context<T>;
 export function useReducer<T, Action = Object>(
@@ -36,46 +42,55 @@ export function useReducer<T, Action = Object>(
     initialState: T,
     initialAction?: Action,
 ): ReducerResponse<T>;
+export function useChannel<T,Data>(context:Context<T>,channel: __keyableTypes, __initValue:Data, onObserve: (state: Context<Data>) => void): ChannelStruct<Data>
+export function reactiveMount<T,Data>(context:Context<T>,refName: __keyableTypes, componentTree: hookedType<Data, BaseLiteralElement>[]): void;
 export function memo<T>(handler: ()=> T): () => T 
 // TODO : 오모한 T 재거
 export type HookContext<PropTypes = object> = {
     state: Array<StateObject<any>>;
     props: PropTypes;
+    children: RendererType<any>[];
+    isMemo: boolean;
+    isMounted: boolean;
     $dom: Array<BaseLiteralElement>;
+    $children: BaseLiteralElement[];
     $self: BaseLiteralElement | null;
-    $children: [BaseLiteralElement];
-    events: __keyableObjects<Function | [Function]>;
-    useState<T>(initialValue: T, _lazySetter: (value: T) => T): IHookResponse<T>;
+    $slot: Node,
+    events: __keyableObjects<Function | Function[]>;
+    useState<T>(initialValue: __lazyValue<T>): IHookResponse<T>;
     useEffect<T>(effect: Function, inputs?: Array<StateObject<T>>): void;
     useReducer<T, Action = Object>(
         reducer: ReducerInit<T, Action>,
         initialState: T,
         initialAction?: Action,
-    ): ReducerResponse<T>
-    useHook<Resolver extends HookResolver = HookResolver>(fn: HookResolver): Resolver & HookContext<PropTypes>;
+    ): ReducerResponse<T>;
+    useChannel<T>(channel: __keyableTypes, __initValue:T, onObserve: (state: Context<T>) => void): ChannelStruct<T>
+    useHook<MergedType>(fn: HookResolver<PropTypes>): MergedType & HookContext<PropTypes>;
+    reactiveMount<T>(refName: __keyableTypes, data: Array<T>, componentTree: hookedType<T, BaseLiteralElement>[]): void;
 };
 export type hookedType<PropTypes,Other> = {
     [HOOK_SYMBOL]: HookContext<PropTypes>
 } & Other;
 export type HOC<
     PropTypes
-> = (props: PropTypes, hookContext: HookContext<PropTypes>) => hookedType<PropTypes, BaseLiteralElement>;
+> = (props: PropTypes, hookContext: HookContext<PropTypes>) => BaseLiteralElement;
 
 export type PureComponent<PropTypes> = (props: PropTypes) => BaseLiteralElement;
 export type ComponentRenderer<PropTypes> = HOC<PropTypes> | PureComponent<PropTypes>;
+export type RendererType<PropTypes> = PureComponent<PropTypes> | hookedType<PropTypes, BaseLiteralElement>
 
 export function hasHook(component: ComponentRenderer<any>): Boolean;
 export function getHook(component: ComponentRenderer<any>): HookContext
-export function useGlobalHook(hook: HookResolver): void
+export function useGlobalHook(hook: HookResolver<any>): void
 export function invokeEvent(hookContext: HookContext, eventName: __keyableTypes): void
 // 오모한 ReducerObject generic 재거
 export function combineReducers(reducerObject: ReducerObject<any, object>): object
-export function bindHook<PropTypes extends object>(props: PropTypes): HookResolver & HookContext<PropTypes> 
+export function bindHook<PropTypes extends object>(props: PropTypes): HookResolver<PropTypes> & HookContext<PropTypes> 
 export function c<
-    PropTypes,
+    PropTypes = any,
     __ComponentRenderType = ComponentRenderer<PropTypes>,
 >(
     component: __ComponentRenderType,
     props: PropTypes,
-    children: [__ComponentRenderType]
+    children: RendererType<any>[]
 ): hookedType<PropTypes, BaseLiteralElement>
