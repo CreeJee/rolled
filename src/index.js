@@ -4,7 +4,22 @@ class Ref {
         this.ref = ref;
     }
 }
-
+export const classListNodeType = "classList";
+const createClassAttribute = (classList, nth) =>
+    Object.assign(Object.create(null), {
+        classList,
+        nth,
+        update(value) {
+            const current = this.classList.item(nth);
+            if (current.length > 0) {
+                this.classList.replace(current, value);
+            } else {
+                this.classList.add(value);
+                this.nth = this.classList.length - 1;
+            }
+        },
+        nodeType: classListNodeType
+    });
 const TREE_WALKER = document.createTreeWalker(
     document,
     NodeFilter.SHOW_ALL,
@@ -12,62 +27,95 @@ const TREE_WALKER = document.createTreeWalker(
     false
 );
 const compilerTemplate = document.createElement("template");
+const attributeSymbol = Symbol("@@ATTRIBUTE_SYMBOL");
 const collector = (node) => {
+    const refSet = [];
     if (node.nodeType !== Node.TEXT_NODE) {
-        if (node.attributes !== undefined) {
-            for (let attr of Array.from(node.attributes)) {
-                let aname = attr.name;
-                if (aname[0] === "#") {
-                    let rName = aname.slice(1);
-                    node.removeAttribute(aname);
+        const attribute = node.attributes;
+        const size = attribute.length;
+        if (attribute !== undefined) {
+            for (let index = 0; index < size; index++) {
+                const { name, value } = attribute[index];
+                const valueMapper =
+                    name === "class" ? value.split(" ") : [value];
+                if (name[0] === "#") {
+                    let rName = name.slice(1);
+                    node.removeAttribute(name);
+                    // todo: legacy & remove
                     node.setAttribute(rName, "");
-                    return aname.slice(1);
+                    refSet.push(name.slice(1));
                 }
+                for (let index = 0; index < valueMapper.length; index++) {
+                    const mappedValue = valueMapper[index];
+                    if (mappedValue[0] === "#") {
+                        // captured
+                        refSet.push(
+                            Object.assign(mappedValue.slice(1), {
+                                nth: index,
+                                name
+                            })
+                        );
+                    }
+                }
+                // TODO: attribute mapper
             }
         }
-        return 0;
     } else {
         let nodeData = node.nodeValue;
         if (nodeData[0] === "#") {
             node.nodeValue = "";
-            return nodeData.slice(1);
+            refSet.push(nodeData.slice(1));
         }
-        return 0;
     }
+    return refSet;
+};
+const generateWay = (indices, node, idx) => {
+    const ref = collector(node);
+    if (Array.isArray(ref) && ref.length > 0) {
+        for (let index = 0; index < ref.length; index++) {
+            let obj = ref[index];
+            indices.push(new Ref(idx, obj));
+        }
+        idx = 1;
+    } else {
+        idx++;
+    }
+    return idx;
 };
 const genPath = (node) => {
     const w = TREE_WALKER;
     w.currentNode = node;
 
     let indices = [],
-        ref,
         idx = 0;
     do {
-        if ((ref = collector(node))) {
-            indices.push(new Ref(idx + 1, ref));
-            idx = 1;
-        } else {
-            idx++;
-        }
+        idx = generateWay(indices, node, idx);
     } while ((node = w.nextNode()));
-
     return indices;
 };
 
 TREE_WALKER.roll = function(n) {
-    while (--n) this.nextNode();
+    while (n > 0) {
+        this.nextNode();
+        --n;
+    }
     return this.currentNode;
 };
 
 function walker(node = this) {
     const refs = {};
     const w = TREE_WALKER;
-
     w.currentNode = node;
     for (const x of this._refPaths) {
         const ref = x.ref;
-        let rolled = w.roll(x.idx);
-        refs[ref] = rolled;
+        const idx = x.idx;
+        const rolled = w.roll(idx);
+        refs[ref] =
+            typeof ref === "object"
+                ? ref.name === "class"
+                    ? createClassAttribute(rolled.classList, ref.nth)
+                    : rolled.attributes[ref.name]
+                : rolled;
     }
     // this._refPaths.map((x) => (refs[x.ref] = w.roll(x.idx)));
     return refs;
@@ -91,7 +139,7 @@ export const h = (strings, ...args) => {
     return content;
 };
 //Fragment
-const getSelfPath = (node) => {
+const genSelfPath = (node) => {
     const w = TREE_WALKER;
     const parent = node.parentNode;
     const siblings = parent !== null ? Array.from(parent.childNodes) : [];
@@ -100,16 +148,10 @@ const getSelfPath = (node) => {
     w.currentNode = node;
 
     let indices = [],
-        ref,
         idx = 0;
     do {
-        if ((ref = collector(current))) {
-            indices.push(new Ref(idx + 1, ref));
-            idx = 1;
-        } else {
-            idx++;
-        }
-        //???
+        idx = generateWay(indices, node, idx);
+        //fragment bugs
         if (!node.isSameNode(current) && siblings.includes(current)) {
             break;
         }
@@ -119,7 +161,7 @@ const getSelfPath = (node) => {
 };
 export const fragmentCompile = (node) => {
     for (const self of node.childNodes) {
-        self._refPaths = getSelfPath(self);
+        self._refPaths = genSelfPath(self);
         self.collect = walker;
     }
 };

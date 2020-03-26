@@ -49,6 +49,7 @@ export function boundEvent(context, eventName, value) {
     const events = context.events;
     const item = events[eventName];
     if (Array.isArray(item)) {
+        //TODO: use scheduler task
         item.push(value);
     } else {
         events[eventName] = value;

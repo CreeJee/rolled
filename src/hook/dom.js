@@ -1,5 +1,6 @@
 import { hasHook, getHook, LayoutGenError } from "./core.js";
 import { reconcile } from "../base/reconcile.js";
+import { classListNodeType } from "../index.js";
 import { invokeEvent } from "./event.js";
 const onUpdate = (node, current, key) => {
     switch (node.nodeType) {
@@ -8,6 +9,11 @@ const onUpdate = (node, current, key) => {
             break;
         case Node.TEXT_NODE:
             node.nodeValue = current;
+            break;
+        case Node.ATTRIBUTE_NODE:
+            break;
+        case classListNodeType:
+            node.update(current);
             break;
         default:
             throw new LayoutGenError("unaccepted data");
