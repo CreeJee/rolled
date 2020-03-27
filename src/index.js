@@ -5,21 +5,20 @@ class Ref {
     }
 }
 export const classListNodeType = "classList";
+const attributeClassTable = {
+    update(value) {
+        const current = this.classList.item(this.nth);
+        if (current.length > 0) {
+            this.classList.replace(current, value);
+        } else {
+            this.classList.add(value);
+            this.nth = this.classList.length - 1;
+        }
+    },
+    nodeType: classListNodeType
+};
 const createClassAttribute = (classList, nth) =>
-    Object.assign(Object.create(null), {
-        classList,
-        nth,
-        update(value) {
-            const current = this.classList.item(nth);
-            if (current.length > 0) {
-                this.classList.replace(current, value);
-            } else {
-                this.classList.add(value);
-                this.nth = this.classList.length - 1;
-            }
-        },
-        nodeType: classListNodeType
-    });
+    Object.assign(Object.create(null), { classList, nth }, attributeClassTable);
 const TREE_WALKER = document.createTreeWalker(
     document,
     NodeFilter.SHOW_ALL,
@@ -61,7 +60,7 @@ const collector = (node) => {
             }
         }
     } else {
-        let nodeData = node.nodeValue;
+        const nodeData = node.nodeValue;
         if (nodeData[0] === "#") {
             node.nodeValue = "";
             refSet.push(nodeData.slice(1));
@@ -74,6 +73,9 @@ const generateWay = (indices, node, idx) => {
     if (Array.isArray(ref) && ref.length > 0) {
         for (let index = 0; index < ref.length; index++) {
             let obj = ref[index];
+            if (index === 1) {
+                idx = 0;
+            }
             indices.push(new Ref(idx, obj));
         }
         idx = 1;

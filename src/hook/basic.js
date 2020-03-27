@@ -102,10 +102,10 @@ function __unMountCycle(context) {
                     invokeEvent(getHook(child), EVENT_NAME.unMount);
                 }
             }
-            removeHook(context.$self);
-            for (const k in context) {
-                delete context[k];
-            }
+            // removeHook(context.$self);
+            // for (const k in context) {
+            //     delete context[k];
+            // }
         }
         context.isMounted = false;
     };
@@ -159,7 +159,8 @@ export function useEffect(context, onCycle, depArray = []) {
 
         if (isChange) {
             __cycleEffects(onCycle, (unMount) => {
-                boundEvent(context, EVENT_NAME.unMount, unMount);
+                typeof unMount === "function" &&
+                    boundEvent(context, EVENT_NAME.unMount, unMount);
             });
         }
     };
@@ -214,10 +215,11 @@ export function useChannel(context, channel, initValue = null, onObserve) {
     if (typeof onObserve === "function") {
         channelObj.push(onObserve);
     }
-    //todo: cycle leak
+    // state는 특정 context에 종속되어 만들때 사용된 context가 아니면 사용및 effect를 발생시키지 못한다
+    // 아이러니한건 이 동작이 마치 UB마냥 행해질것같은대 이거에 대한 생각을 해봐야함
     return channelObj.state;
 }
-//this function is generic util
+//generic dom util
 export function reactiveMount(context, refName, componentTree) {
     const refs = context.$self.collect();
     const reactiveSymbol = Symbol.for(`@@reactiveMountedTag`);

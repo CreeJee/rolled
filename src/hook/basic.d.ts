@@ -66,7 +66,7 @@ export type HookContext<PropTypes = object> = {
     ): ReducerResponse<T>;
     useChannel<T>(channel: __keyableTypes, __initValue:T, onObserve: (state: Context<T>) => void): ChannelStruct<T>
     useHook<MergedType>(fn: HookResolver<PropTypes>): MergedType & HookContext<PropTypes>;
-    reactiveMount<T>(refName: __keyableTypes, data: Array<T>, componentTree: hookedType<T, BaseLiteralElement>[]): void;
+    reactiveMount<T>(refName: __keyableTypes, componentTree: hookedType<T, BaseLiteralElement>[]): void;
 };
 export type hookedType<PropTypes,Other> = {
     [HOOK_SYMBOL]: HookContext<PropTypes>

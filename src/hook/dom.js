@@ -1,16 +1,16 @@
 import { hasHook, getHook, LayoutGenError } from "./core.js";
 import { reconcile } from "../base/reconcile.js";
+import { reuseNodes } from "../base/reuseNodes.js";
 import { classListNodeType } from "../index.js";
 import { invokeEvent } from "./event.js";
 const onUpdate = (node, current, key) => {
     switch (node.nodeType) {
-        case Node.ELEMENT_NODE:
-            node.setAttribute(key, current);
-            break;
+        // case Node.ELEMENT_NODE:
+        //     node.setAttribute(key, current);
+        //     break;
         case Node.TEXT_NODE:
-            node.nodeValue = current;
-            break;
         case Node.ATTRIBUTE_NODE:
+            node.nodeValue = current;
             break;
         case classListNodeType:
             node.update(current);
@@ -119,27 +119,22 @@ export const __generateChildren = (parent, childs, renderer = reconcile) => {
     let renderedItems = [];
     let components = [];
     if (Array.isArray(childs)) {
-        if (parent.childNodes.length > 0) {
-            throw new LayoutGenError(
-                "child node is already exists might be work wrong"
-            );
+        if (!("update" in parent)) {
+            parent.update = function(data) {
+                renderer(
+                    parent,
+                    renderedItems,
+                    childs,
+                    (hoc, nth) => {
+                        const view = __generateComponent({}, hoc);
+                        components[nth] = view;
+                        return view;
+                    },
+                    (node, item) => node.update(item)
+                );
+                renderedItems = childs.slice();
+            };
         }
-        parent.update = function(data) {
-            renderer(
-                parent,
-                renderedItems,
-                childs,
-                (hoc, nth) => {
-                    const view = __generateComponent({}, hoc);
-                    // tricky solution
-                    // @ts-ignore
-                    components[nth] = view;
-                    return view;
-                },
-                (node, item) => node.update(item)
-            );
-            renderedItems = childs.slice();
-        };
         parent.update(childs.slice());
     }
     return components;

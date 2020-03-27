@@ -50,7 +50,11 @@ export function boundEvent(context, eventName, value) {
     const item = events[eventName];
     if (Array.isArray(item)) {
         //TODO: use scheduler task
-        item.push(value);
+        if (typeof value === "function") {
+            item.push(value);
+        } else {
+            throw new EventError(`event is must function!!!`);
+        }
     } else {
         events[eventName] = value;
     }

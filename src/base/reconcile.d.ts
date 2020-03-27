@@ -7,4 +7,5 @@ export function reconcile(
     beforeNode?: Node,
     afterNode?: Node
     ): void;
+    
 export default reconcile;

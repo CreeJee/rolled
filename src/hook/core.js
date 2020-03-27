@@ -1,20 +1,24 @@
 export const hooksMiddleWare = [];
-const __Context_Getter = (target, prop, receiver) => {
+const __Context_Getter = (target, prop) => {
     const pureValue = target.value;
     return Reflect.get(
-        typeof pureValue === "object" && prop in pureValue
+        prop in target
+            ? target
+            : typeof pureValue === "object" && prop in pureValue
             ? target.value
             : target,
-        prop,
-        receiver
+        prop
     );
 };
+const __Context_Apply = (target, thisArg, argumentsList) =>
+    Reflect.apply(target, thisArg, argumentsList);
 export class Context {
     constructor(value, nth) {
         this.value = value;
         this.nth = nth;
         return new Proxy(this, {
-            get: __Context_Getter
+            get: __Context_Getter,
+            apply: __Context_Apply
         });
     }
     toString() {
