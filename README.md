@@ -1,6 +1,6 @@
 
 # rolled
-
+[![npm version](https://badge.fury.io/js/rolled.svg)](https://badge.fury.io/js/rolled)
 rolled is a Javascript library for dom base hooks(React hooks + custom hook).
 
 ## Installation
