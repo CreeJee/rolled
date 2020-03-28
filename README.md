@@ -1,63 +1,27 @@
 
 # rolled
-## info
-### well hooked & better flow control
-> if Freak613 wants close this repo, i will archive it...
-> please do not use product... X_X
 
+rolled is a Javascript library for dom base hooks(React hooks + custom hook).
 
-## TODO LIST
+## Installation
+```bash
+npm install rolled
+```
 
-1. styled.js
-    - [x] non-duplicated css feature remove
-2. main logic
-    - [ ] hook
-      - [ ] core 
-        - [x] not global object but own context & scoping
-        - [ ] batching tasks
-          - [x] layout tasks
-          - [x] mutation tasks
-            - [x] unMount mutation connect  
-          - [ ] testing benchmark
-        - [x] memo
-        - [x] lazy
-        - [ ] slot support
-          - [ ] example ```javascirpt h`<div>#children</div>` ```
-      - [ ] hooks
-        - [x] useState
-        - [x] useEffect
-          - [x] on removed all $dom Array in hooks then fired unMount
-        - [x] useReducer
-      - [x] useLayoutState
-      - [ ] really need?
-        - [ ] useCallback
-        - [ ] useMemo
-        - [x] useContext
-        - [ ] useRef
-        - [ ] useImperativeHandle
-        - [ ] useLayoutEffect
-        - [ ] useDebugValue
-    - [ ] like Functional component things
-    - [ ] NEW action
-      - [x] useHook
-      - [x] useChannel(channel: string|symbol) => [currentContext, send => {}]
-      - [x] reactiveMount
-      - [ ] NEED MORE IDEA....
-    - [x] custom renderer
-    - [x] layout effects used props values
-  - [x] support fragment (use documentFragment)
-    - [x] reconcile, keyed support
-    - [x] fragment is now added collecting node
-## doc
+## Usage
 
 ### basic
-examples in '/examples/test.html'
+[basic](https://github.com/CreeJee/rolled/blob/master/examples/test.html)
 
-### hook
-examples in '/examples/useRecolience.html'
+### hooked
+[todo-app](https://github.com/CreeJee/rolled-example-app)
 
-## example project
+## Contributing
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+Please make sure to update tests as appropriate.
 
 ## License
-[stage0 License](https://github.com/Freak613/stage0/blob/master/LICENSE)
-[rolled License](https://github.com/CreeJee/rolled/blob/master/LICENSE)
+[stage0 License(MIT)](https://github.com/Freak613/stage0/blob/master/LICENSE)
+
+[rolled License(BEERWARE)](https://github.com/CreeJee/rolled/blob/master/LICENSE)

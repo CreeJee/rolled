@@ -1,11 +1,10 @@
 {
     "name": "rolled",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "description": "Dom tools for better logic",
     "main": "index.js",
     "scripts": {
-        "build-rollup": "rollup -c -w",
-        "build-parcal": "parcel build index.js",
+        "build": "parcel build index.js",
         "generate-doc": "typedoc --out docs"
     },
     "author": "CreeJee <000as00060@gmail.com>",
