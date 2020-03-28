@@ -1,6 +1,7 @@
 
 # rolled
 [![npm version](https://badge.fury.io/js/rolled.svg)](https://badge.fury.io/js/rolled)
+
 rolled is a Javascript library for dom base hooks(React hooks + custom hook).
 
 ## Installation
@@ -10,10 +11,8 @@ npm install rolled
 
 ## Usage
 
-### basic
 [basic](https://github.com/CreeJee/rolled/blob/master/examples/test.html)
 
-### hooked
 [todo-app](https://github.com/CreeJee/rolled-example-app)
 
 ## Contributing
