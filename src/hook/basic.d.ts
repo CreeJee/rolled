@@ -20,6 +20,9 @@ export class Context<T> {
 export class ChannelStruct<T> extends Array<HookContext> {
     state: StateObject<T>
 }
+export class LazyComponent<PropTypes>{
+    constructor(load: ()=> Promise<RendererType<PropTypes>>, loadingComponent: ()=> RendererType<PropTypes>)
+}
 type IHookResponse<T, Dispatch extends Dispatcher<T> = Dispatcher<T>> = StateObject<T, Dispatch>
 type StateResponse<T> = IHookResponse<T, (newState: T) => void>;
 type ReducerResponse<T> = IHookResponse<T, (action: Object) => void>;
@@ -45,7 +48,10 @@ export function useReducer<T, Action = Object>(
 export function useChannel<T,Data>(context:Context<T>,channel: __keyableTypes, __initValue:Data, onObserve: (state: Context<Data>) => void): ChannelStruct<Data>
 export function reactiveMount<T,Data>(context:Context<T>,refName: __keyableTypes, componentTree: hookedType<Data, BaseLiteralElement>[]): void;
 export function memo<T>(handler: ()=> T): () => T 
-// TODO : 오모한 T 재거
+export function lazy<PropTypes>(
+    load: ()=> Promise<RendererType<PropTypes>>,
+    loading?: ()=> RendererType<PropTypes>
+): LazyComponent<PropTypes>
 export type HookContext<PropTypes = object> = {
     state: Array<StateObject<any>>;
     props: PropTypes;

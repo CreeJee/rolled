@@ -77,21 +77,6 @@ function __cycleEffects(cycle, nextCycle) {
 }
 function __unMountCycle(context) {
     return () => {
-        /**
-         * 우선 생각을 해볼것이 unMount행위등에따르는것이
-         *
-         * memo에 축적되었을때 다시마운트하느냐
-         * memo 에 한정해서 unMount 없이 캐싱하느냐
-         *
-         * 이고 우선적으로 떠오르는건 1번일지도
-         *
-         * 하자만 1일경우 child를 unMount시킬경우 unMount 시키고 mount시키는것자체가 큰 의미가없게됨
-         *
-         * 사실 엄밀히보면 dom차원의 업데이트이기에 xhr이나 비싼연산아니면 의미가없는데
-         * 2를 하자니 존나더러워질것가틈
-         *
-         *
-         */
         if (!context.isMemo) {
             for (const k of Object.keys(EVENT_NAME)) {
                 clearEvent(context, k);
@@ -191,6 +176,7 @@ class ChannelStruct extends Array {
         //     () => state[0],
         //     (value) => void (state[0].value = value)
         // );
+        this.ownedContext = context;
         this.state = useState(context, initValue);
     }
 }
@@ -199,6 +185,7 @@ export function useChannel(context, channel, initValue = null, onObserve) {
     if (!__channelMap.has(channel)) {
         const channelObj = new ChannelStruct(context, initValue);
         const [state] = channelObj.state;
+        //TODO : useEffect 등의 hookContext에 디펜전시된값이 아닌 stateLayout을 이용한 처리필요
         useEffect(
             context,
             () => {
@@ -296,7 +283,7 @@ export class LazyComponent {
 }
 function __defaultLazy() {
     //TODO: generate component
-    return h`<empty></empty>`;
+    return h`<div style="display:none;"></div>`;
 }
 export function lazy(load, loading = __defaultLazy) {
     return new LazyComponent(Promise.resolve(load()), loading);
