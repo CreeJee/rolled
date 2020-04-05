@@ -14,15 +14,17 @@ export const EVENT_NAME = {
     unMount: "unMount",
     mount: "mount",
     watch: Symbol("WATCHED_EVENT"),
+};
+export const SYSTEM_EVENT_NAME = {
     $mount: __generateLifeCycleName("mount"),
-    $unMount: __generateLifeCycleName("unMount")
+    $unMount: __generateLifeCycleName("unMount"),
 };
 export function expectEvent(context, eventName) {
     if (
         context &&
         typeof context === "object" &&
         context !== null &&
-        eventName in EVENT_NAME
+        (eventName in EVENT_NAME || eventName in SYSTEM_EVENT_NAME)
     ) {
         return;
     }

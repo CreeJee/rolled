@@ -8,12 +8,10 @@ interface RefObj {
 }
 interface BaseLiteralElement {
     _refPaths?: Ref[];
-    collect(node: Node): RefObj;
+    //collect start node needs optional
+    collect(node? : Node): RefObj;
 }
 interface hElement extends HTMLElement,BaseLiteralElement {}
 interface fragmentElement extends DocumentFragment, BaseLiteralElement{}
-export const classListNodeType: string;
-export function compile(node: Node): void;
 export function h(strings: TemplateStringsArray, ...args: any[]): hElement;
-export function fragmentCompile(node: Node): void;
 export function fragment(strings: TemplateStringsArray, ...args: any[]): fragmentElement;

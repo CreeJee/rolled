@@ -2,18 +2,12 @@ import { BaseLiteralElement } from "../index";
 
 declare const HOOK_SYMBOL:  unique symbol;
 type Dispatcher<T> = (p: T) => void
-/**
- * @description state interface class
- */
-export class StateObject<T, Dispatch extends Dispatcher<T> = Dispatcher<T>> {
-    get [0](): Context<T>;
-    get [1](): Dispatch;
-    [Symbol.iterator](): [Context<T>, Dispatch]
-}
+export type StateObject<T, Data = T> = [Context<T>, Dispatcher<Data>];
 export class Context<T> {
     constructor(value: any, nth: number)
     toString(): string
     valueOf(): T
+    value:T
     [Symbol.toPrimitive](): T
     static convert<T>(value: any, nth: number): Context<T>
 }
@@ -23,9 +17,7 @@ export class ChannelStruct<T> extends Array<HookContext> {
 export class LazyComponent<PropTypes>{
     constructor(load: ()=> Promise<RendererType<PropTypes>>, loadingComponent: ()=> RendererType<PropTypes>)
 }
-type IHookResponse<T, Dispatch extends Dispatcher<T> = Dispatcher<T>> = StateObject<T, Dispatch>
-type StateResponse<T> = IHookResponse<T, (newState: T) => void>;
-type ReducerResponse<T> = IHookResponse<T, (action: Object) => void>;
+type ReducerResponse<T> = StateObject<T, Object>;
 type ReducerInit<T, Action> = (state: T, action: Action) => T
 type __keyableTypes = (string | symbol);
 type __keyableObjects<T> = {
@@ -37,15 +29,15 @@ type __lazyValue<T> = T | __lazySetter<T>;
 type HookResolver<PropTypes, ReturnType = any> = (hook: HookContext<PropTypes>) => __keyableObjects<ReturnType>;
 type ReducerObject<State, Action extends object> = __keyableObjects<ReducerInit<State, Action>>;
 
-export function useState<T>(context: Context<T>, initialValue: __lazyValue<T>): StateResponse<T>;
-export function useEffect<T>(context: Context<T>, effect: Function, inputs?: Array<Context<any>>): void;
+export function useState<T>(context: Context<T>, initialValue: __lazyValue<T>): StateObject<T>;
+export function useEffect<T>(context: Context<T>, effect: Function, inputs?: Array<Context<T>>): void;
 export function useContext<T>(value: T): Context<T>;
 export function useReducer<T, Action = Object>(
     reducer: ReducerInit<T, Action>,
     initialState: T,
     initialAction?: Action,
 ): ReducerResponse<T>;
-export function useChannel<T,Data>(context:Context<T>,channel: __keyableTypes, __initValue:Data, onObserve: (state: Context<Data>) => void): ChannelStruct<Data>
+export function useChannel<T>(context:Context<T>,channel: __keyableTypes, __initValue:T, onObserve?: (state: T) => void): StateObject<T>
 export function reactiveMount<T,Data>(context:Context<T>,refName: __keyableTypes, componentTree: hookedType<Data, BaseLiteralElement>[]): void;
 export function memo<T>(handler: ()=> T): () => T 
 export function lazy<PropTypes>(
@@ -63,16 +55,16 @@ export type HookContext<PropTypes = object> = {
     $self: BaseLiteralElement | null;
     $slot: Node,
     events: __keyableObjects<Function | Function[]>;
-    useState<T>(initialValue: __lazyValue<T>): IHookResponse<T>;
-    useEffect<T>(effect: Function, inputs?: Array<StateObject<T>>): void;
+    useState<T>(initialValue: __lazyValue<T>): StateObject<T>;
+    useEffect<T>(effect: Function, inputs?: Array<Context<T>>): void;
     useReducer<T, Action = Object>(
         reducer: ReducerInit<T, Action>,
         initialState: T,
         initialAction?: Action,
     ): ReducerResponse<T>;
-    useChannel<T>(channel: __keyableTypes, __initValue:T, onObserve: (state: Context<T>) => void): ChannelStruct<T>
-    useHook<MergedType>(fn: HookResolver<PropTypes>): MergedType & HookContext<PropTypes>;
+    useChannel<T>(channel: __keyableTypes, __initValue:T, onObserve?: (state: T) => void): StateObject<T>;
     reactiveMount<T>(refName: __keyableTypes, componentTree: hookedType<T, BaseLiteralElement>[]): void;
+    useHook<MergedType>(fn: HookResolver<PropTypes>): MergedType & HookContext<PropTypes>;
 };
 export type hookedType<PropTypes,Other> = {
     [HOOK_SYMBOL]: HookContext<PropTypes>

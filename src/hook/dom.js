@@ -84,43 +84,22 @@ export const __forceGenerateTags = (
             const view = __generateComponent({}, hoc);
             // tricky solution
             // @ts-ignore
-            refCollector[nth] = view;
+            if (view.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+                throw new LayoutGenError("slot is must not fragment");
+            }
+            refCollector.splice(nth, 0, view);
             return view;
         },
         (node, item) => node.update(item)
     );
     return refCollector;
 };
-// export const __generateChildren = (parent, childs, renderer) => {
-//     let renderedItems = [];
-//     let components = [];
-//     if (Array.isArray(childs)) {
-//         if (childs.length > 0 && parent.childNodes.length > 0) {
-//             throw new LayoutGenError(
-//                 "child node is already exists might be work wrong"
-//             );
-//         }
-//         parent.update = function(data) {
-//             __forceGenerateTags(
-//                 parent,
-//                 renderedItems,
-//                 childs,
-//                 components,
-//                 renderer
-//             );
-//             renderedItems = childs.slice();
-//         };
-//         parent.update();
-//     }
-//     return components;
-// };
-
 export const __generateChildren = (parent, childs, renderer = reconcile) => {
     let renderedItems = [];
     let components = [];
     if (Array.isArray(childs)) {
         if (!("update" in parent)) {
-            parent.update = function(data) {
+            parent.update = function (data) {
                 renderer(
                     parent,
                     renderedItems,

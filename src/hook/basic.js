@@ -2,7 +2,7 @@ import {
     __generateChildren,
     __generateComponent,
     __bindDom,
-    __forceGenerateTags
+    __forceGenerateTags,
 } from "./dom.js";
 import {
     HookError,
@@ -13,11 +13,17 @@ import {
     getHook,
     removeHook,
     bindGlobalHook,
-    setHook
+    setHook,
 } from "./core.js";
 import { h } from "../index.js";
 import { getAnimationQueue, getTimerQueue, getIdleQueue } from "./taskQueue.js";
-import { invokeEvent, EVENT_NAME, clearEvent, boundEvent } from "./event.js";
+import {
+    invokeEvent,
+    EVENT_NAME,
+    clearEvent,
+    boundEvent,
+    SYSTEM_EVENT_NAME,
+} from "./event.js";
 
 //d.ts 잠제적 migrate
 export * from "./core.js";
@@ -28,21 +34,24 @@ const __channelMap = new Map();
 
 //effects layout
 function __stateLayout(context, initValue, setter) {
-    const state = context.state;
-    const nth = state.length;
+    const nth = context.state.length;
     const temp = new StateObject(
-        () => state[nth],
+        () => context.state[nth],
         function __dispatch(val) {
-            let value = val instanceof Context ? val.value : val;
-            let contextValue = state[nth];
-            contextValue.value = value;
-            if (typeof setter === "function") {
-                setter(contextValue);
+            if (Array.isArray(context.state)) {
+                let value = val instanceof Context ? val.value : val;
+                let contextValue = context.state[nth];
+                contextValue.value = value;
+                if (typeof setter === "function") {
+                    setter(contextValue);
+                }
+            } else {
+                throw new Error("dispatch only actived Context");
             }
         }
     );
-    if (!state[nth]) {
-        state[nth] = Context.convert(initValue || undefined, nth);
+    if (!(nth in context.state)) {
+        context.state[nth] = Context.convert(initValue || undefined, nth);
     }
     return temp;
 }
@@ -87,12 +96,12 @@ function __unMountCycle(context) {
                     invokeEvent(getHook(child), EVENT_NAME.unMount);
                 }
             }
-            // removeHook(context.$self);
-            // for (const k in context) {
-            //     delete context[k];
-            // }
+            removeHook(context.$self);
+            for (const k in context) {
+                delete context[k];
+            }
+            context.isMounted = false;
         }
-        context.isMounted = false;
     };
 }
 function __onMountCycle(context) {
@@ -184,17 +193,17 @@ export function useChannel(context, channel, initValue = null, onObserve) {
     let channelObj = null;
     if (!__channelMap.has(channel)) {
         const channelObj = new ChannelStruct(context, initValue);
-        const [state] = channelObj.state;
-        //TODO : useEffect 등의 hookContext에 디펜전시된값이 아닌 stateLayout을 이용한 처리필요
         useEffect(
             context,
             () => {
+                const [state] = channelObj.state;
                 for (let index = 0; index < channelObj.length; index++) {
                     const handler = channelObj[index];
                     handler(state.value);
                 }
+                return () => {};
             },
-            [state]
+            [channelObj.state[0]]
         );
         __channelMap.set(channel, channelObj);
     }
@@ -208,6 +217,9 @@ export function useChannel(context, channel, initValue = null, onObserve) {
 }
 //generic dom util
 export function reactiveMount(context, refName, componentTree) {
+    if (context.$self === null) {
+        throw new LayoutGenError("current context is not mounted dom");
+    }
     const refs = context.$self.collect();
     const reactiveSymbol = Symbol.for(`@@reactiveMountedTag`);
     refName = refName.toLowerCase();
@@ -223,15 +235,25 @@ export function reactiveMount(context, refName, componentTree) {
             writable: false,
             enumerable: false,
             configurable: false,
-            value: []
+            value: [],
         });
     }
     const renderedItems = refTag[reactiveSymbol];
-    renderedItems.splice(
-        0,
-        renderedItems.length,
-        ...__forceGenerateTags(refTag, refTag[reactiveSymbol], componentTree)
-    );
+    try {
+        const unMountedRef = renderedItems.splice(
+            0,
+            renderedItems.length,
+            ...__forceGenerateTags(
+                refTag,
+                refTag[reactiveSymbol],
+                componentTree
+            )
+        );
+    } catch (e) {
+        if (e instanceof LayoutGenError) {
+            throw new LayoutGenError(`[ReactiveMount] ${e.message}`);
+        }
+    }
 }
 
 //hook utils
@@ -303,9 +325,9 @@ export function bindHook(props = {}, children) {
         events: {
             [EVENT_NAME.mount]: [],
             [EVENT_NAME.unMount]: [],
-            [EVENT_NAME.$mount]: [],
-            [EVENT_NAME.$unMount]: [],
-            [EVENT_NAME.watch]: []
+            [SYSTEM_EVENT_NAME.$mount]: [],
+            [SYSTEM_EVENT_NAME.$unMount]: [],
+            [EVENT_NAME.watch]: [],
         },
         useState(value) {
             return useState(hookContext, value);
@@ -324,11 +346,11 @@ export function bindHook(props = {}, children) {
         },
         reactiveMount(refName, componentTree) {
             return reactiveMount(hookContext, refName, componentTree);
-        }
+        },
     };
     const events = hookContext.events;
-    events[EVENT_NAME.$mount].push(__onMountCycle(hookContext));
-    events[EVENT_NAME.$unMount].push(__unMountCycle(hookContext));
+    events[SYSTEM_EVENT_NAME.$mount].push(__onMountCycle(hookContext));
+    events[SYSTEM_EVENT_NAME.$unMount].push(__unMountCycle(hookContext));
     return Object.assign(hookContext, bindGlobalHook(hookContext));
 }
 export function __compileComponent(component, tagProps, hookContext, children) {

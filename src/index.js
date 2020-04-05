@@ -15,7 +15,7 @@ const attributeClassTable = {
             this.nth = this.classList.length - 1;
         }
     },
-    nodeType: classListNodeType
+    nodeType: classListNodeType,
 };
 const createClassAttribute = (classList, nth) =>
     Object.assign(Object.create(null), { classList, nth }, attributeClassTable);
@@ -51,7 +51,7 @@ const collector = (node) => {
                         refSet.push(
                             Object.assign(mappedValue.slice(1), {
                                 nth: index,
-                                name
+                                name,
                             })
                         );
                     }
@@ -96,7 +96,7 @@ const genPath = (node) => {
     return indices;
 };
 
-TREE_WALKER.roll = function(n) {
+TREE_WALKER.roll = function (n) {
     while (n > 0) {
         this.nextNode();
         --n;
@@ -126,12 +126,12 @@ export const extractFragment = (strings, ...args) => {
     const template = String.raw(strings, ...args)
         .replace(/>\n+/g, ">")
         .replace(/\s+</g, "<")
-        .replace(/>\s+/g, ">")
-        .replace(/\n\s+/g, "<!-- -->");
+        .replace(/>\s+/g, ">");
+    // .replace(/\n\s+/g, "<!-- -->");
     compilerTemplate.innerHTML = template;
     return compilerTemplate.content;
 };
-export const compile = (node) => {
+const compile = (node) => {
     node._refPaths = genPath(node);
     node.collect = walker;
 };
@@ -152,7 +152,7 @@ const genSelfPath = (node) => {
     let indices = [],
         idx = 0;
     do {
-        idx = generateWay(indices, node, idx);
+        idx = generateWay(indices, current, idx);
         //fragment bugs
         if (!node.isSameNode(current) && siblings.includes(current)) {
             break;
@@ -161,13 +161,13 @@ const genSelfPath = (node) => {
 
     return indices;
 };
-export const fragmentCompile = (node) => {
+const fragmentCompile = (node) => {
     for (const self of node.childNodes) {
         self._refPaths = genSelfPath(self);
         self.collect = walker;
     }
 };
-const fragmentCollect = (node) => {
+const fragmentCollect = function (node = this) {
     const refs = {};
     for (const self of node.childNodes) {
         Object.assign(refs, self.collect(self));
@@ -177,7 +177,9 @@ const fragmentCollect = (node) => {
 export const fragment = (strings, ...args) => {
     const content = extractFragment(strings, ...args);
     fragmentCompile(content);
-    content.collect = fragmentCollect;
+    content.collect = fragmentCollect.bind({
+        childNodes: Array.from(content.childNodes),
+    });
     return content;
 };
 export default h;

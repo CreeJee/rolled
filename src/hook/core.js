@@ -18,7 +18,7 @@ export class Context {
         this.nth = nth;
         return new Proxy(this, {
             get: __Context_Getter,
-            apply: __Context_Apply
+            apply: __Context_Apply,
         });
     }
     toString() {
@@ -38,11 +38,14 @@ export class StateObject {
     constructor(getter, dispatcher) {
         Object.defineProperties(this, {
             0: {
-                get: getter
+                get: getter,
             },
             1: {
-                get: () => dispatcher
-            }
+                get: () => dispatcher,
+            },
+            length: {
+                value: 2,
+            },
         });
     }
     *[Symbol.iterator]() {
