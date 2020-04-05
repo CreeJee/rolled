@@ -100,8 +100,8 @@ function __unMountCycle(context) {
             for (const k in context) {
                 delete context[k];
             }
-            context.isMounted = false;
         }
+        context.isMounted = false;
     };
 }
 function __onMountCycle(context) {
@@ -130,8 +130,8 @@ export function combineReducers(reducerObject) {
 // hooks
 export function useState(context, initValue, _lazySetter) {
     const state = __stateEffect(context, initValue, _lazySetter);
-    const __dispatch = state[1];
-    __dispatch(initValue);
+    // const __dispatch = state[1];
+    // __dispatch(initValue);
     return state;
 }
 export function useLayoutState(context, initValue, _lazySetter) {
