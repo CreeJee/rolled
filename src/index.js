@@ -19,14 +19,8 @@ const attributeClassTable = {
 };
 const createClassAttribute = (classList, nth) =>
     Object.assign(Object.create(null), { classList, nth }, attributeClassTable);
-const TREE_WALKER = document.createTreeWalker(
-    document,
-    NodeFilter.SHOW_ALL,
-    null,
-    false
-);
+
 const compilerTemplate = document.createElement("template");
-const attributeSymbol = Symbol("@@ATTRIBUTE_SYMBOL");
 const collector = (node) => {
     const refSet = [];
     if (node.nodeType !== Node.TEXT_NODE) {
@@ -68,50 +62,55 @@ const collector = (node) => {
     }
     return refSet;
 };
-const generateWay = (indices, node, idx) => {
-    const ref = collector(node);
-    if (Array.isArray(ref) && ref.length > 0) {
-        for (let index = 0; index < ref.length; index++) {
-            let obj = ref[index];
-            if (index === 1) {
-                idx = 0;
-            }
-            indices.push(new Ref(idx, obj));
-        }
-        idx = 1;
-    } else {
-        idx++;
-    }
-    return idx;
-};
-const genPath = (node) => {
-    const w = TREE_WALKER;
-    w.currentNode = node;
 
-    let indices = [],
-        idx = 0;
-    do {
-        idx = generateWay(indices, node, idx);
-    } while ((node = w.nextNode()));
+const __default__handler = () => false;
+const genPathRecursive = (
+    node,
+    handler = __default__handler,
+    path = [],
+    indices = [],
+    root = node
+) => {
+    const childNodes = node.childNodes;
+    const collect = collector(node);
+    if (Array.isArray(collect) && collect.length > 0) {
+        for (let index = 0; index < collect.length; index++) {
+            indices.push(new Ref(path, collect[index]));
+        }
+    }
+    for (const idx of childNodes.keys()) {
+        const child = childNodes[idx];
+        genPathRecursive(child, handler, path.concat(idx), indices, node);
+        if (handler() || __default__handler()) {
+            break;
+        }
+    }
     return indices;
 };
-
-TREE_WALKER.roll = function (n) {
-    while (n > 0) {
-        this.nextNode();
-        --n;
+const genPath = (node, handler = __default__handler) => {
+    return genPathRecursive(node, handler);
+};
+const genFragmentPath = (node) => {
+    const parent = node.parentNode;
+    const siblings = parent !== null ? Array.from(parent.childNodes) : [];
+    return genPath(
+        node,
+        () => !node.isSameNode(node) && siblings.includes(node)
+    );
+};
+const roll = (node, idx) => {
+    for (const k of idx) {
+        node = node.childNodes[k];
     }
-    return this.currentNode;
+    return node;
 };
 
 function walker(node = this) {
     const refs = {};
-    const w = TREE_WALKER;
-    w.currentNode = node;
     for (const x of this._refPaths) {
         const ref = x.ref;
         const idx = x.idx;
-        const rolled = w.roll(idx);
+        const rolled = roll(node, idx);
         refs[ref] =
             typeof ref === "object"
                 ? ref.name === "class"
@@ -119,7 +118,6 @@ function walker(node = this) {
                     : rolled.attributes[ref.name]
                 : rolled;
     }
-    // this._refPaths.map((x) => (refs[x.ref] = w.roll(x.idx)));
     return refs;
 }
 export const extractFragment = (strings, ...args) => {
@@ -140,30 +138,10 @@ export const h = (strings, ...args) => {
     compile(content);
     return content;
 };
-//Fragment
-const genSelfPath = (node) => {
-    const w = TREE_WALKER;
-    const parent = node.parentNode;
-    const siblings = parent !== null ? Array.from(parent.childNodes) : [];
 
-    let current = node;
-    w.currentNode = node;
-
-    let indices = [],
-        idx = 0;
-    do {
-        idx = generateWay(indices, current, idx);
-        //fragment bugs
-        if (!node.isSameNode(current) && siblings.includes(current)) {
-            break;
-        }
-    } while ((current = w.nextNode()));
-
-    return indices;
-};
 const fragmentCompile = (node) => {
     for (const self of node.childNodes) {
-        self._refPaths = genSelfPath(self);
+        self._refPaths = genFragmentPath(self);
         self.collect = walker;
     }
 };
