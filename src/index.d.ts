@@ -15,3 +15,4 @@ interface hElement extends HTMLElement,BaseLiteralElement {}
 interface fragmentElement extends DocumentFragment, BaseLiteralElement{}
 export function h(strings: TemplateStringsArray, ...args: any[]): hElement;
 export function fragment(strings: TemplateStringsArray, ...args: any[]): fragmentElement;
+export const classListNodeType: string;

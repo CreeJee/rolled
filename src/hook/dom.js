@@ -59,7 +59,7 @@ export const __bindDom = ({ ...item }, itemGroup) => {
 export const __generateComponent = (item, component) => {
     let view = component(item);
     if (view instanceof Promise) {
-        throw new LayoutGenError("lazy is not Promise (use rolled.lazy)");
+        throw new LayoutGenError("component is not Promise (use rolled.lazy)");
     }
     const hook = getHook(view);
     const isHook = hasHook(view);

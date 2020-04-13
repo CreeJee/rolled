@@ -9,6 +9,8 @@ import { noOpUpdate, longestPositiveIncreasingSubsequence } from "../utils.js";
 // How this implementation differs from others, is that it's working with data directly,
 // without maintaining nodes arrays, and uses dom props firstChild/lastChild/nextSibling
 // for markers moving.
+
+const fragmentTemplate = document.createDocumentFragment();
 export function reconcile(
     parent,
     renderedValues,
@@ -52,7 +54,6 @@ export function reconcile(
         }
         return;
     }
-
     let prevStart = 0,
         newStart = 0,
         loop = true,

@@ -31,7 +31,6 @@ export function expectEvent(context, eventName) {
     throw new EventError(`${eventName.toString()} is not supported Event`);
 }
 export function invokeEvent(hookContext, eventName) {
-    expectEvent(hookContext, eventName);
     const events = hookContext.events;
     const item = events[eventName];
     if (typeof item === "function") {
@@ -43,11 +42,15 @@ export function invokeEvent(hookContext, eventName) {
         }
     }
     if (!__isLifeCycleEvent(eventName)) {
-        invokeEvent(hookContext, lifeCycleSymbol + eventName);
+        const lifeCycleEvent = __generateLifeCycleName(eventName);
+        expectEvent(hookContext, lifeCycleEvent);
+        invokeEvent(hookContext, lifeCycleEvent);
     }
 }
 export function boundEvent(context, eventName, value) {
-    expectEvent(context, eventName);
+    // if (__isLifeCycleEvent(eventName)) {
+    //    throw new EventError(`LifeCycle event is must not binding`)
+    // }
     const events = context.events;
     const item = events[eventName];
     if (Array.isArray(item)) {
@@ -62,12 +65,11 @@ export function boundEvent(context, eventName, value) {
     }
 }
 export function clearEvent(context, eventName) {
-    expectEvent(context, eventName);
     const events = context.events;
     const item = events[eventName];
     if (Array.isArray(item)) {
         item.splice(0);
-    } else {
+    } else if (typeof item === "function") {
         events[eventName] = () => {};
     }
 }

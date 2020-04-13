@@ -32,7 +32,7 @@
                                 );
                                 useEffect(() => {
                                     props.stateText = state;
-                                });
+                                }, []);
                                 setTimeout(() => {
                                     setState("state changed!!!");
                                 }, 1000);
@@ -48,7 +48,7 @@
                 document.getElementById("app"),
                 c(Parent, { name: "foo" }, [
                     // c(Parent, { name: "bar" })
-                    c(lazyComponent, {})
+                    c(lazyComponent, {}),
                 ])
             );
         </script>

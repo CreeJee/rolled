@@ -21,6 +21,7 @@ const createClassAttribute = (classList, nth) =>
     Object.assign(Object.create(null), { classList, nth }, attributeClassTable);
 
 const compilerTemplate = document.createElement("template");
+const __templateStore = new Map();
 const collector = (node) => {
     const refSet = [];
     if (node.nodeType !== Node.TEXT_NODE) {
@@ -124,10 +125,17 @@ export const extractFragment = (strings, ...args) => {
     const template = String.raw(strings, ...args)
         .replace(/>\n+/g, ">")
         .replace(/\s+</g, "<")
-        .replace(/>\s+/g, ">");
+        .replace(/>\s+/g, ">")
+        .replace(/\n\s+/g, "");
     // .replace(/\n\s+/g, "<!-- -->");
-    compilerTemplate.innerHTML = template;
-    return compilerTemplate.content;
+    if (__templateStore.has(template)) {
+        return __templateStore.get(template).cloneNode(true);
+    } else {
+        compilerTemplate.innerHTML = template;
+        const contentFragment = compilerTemplate.content;
+        __templateStore.set(template, contentFragment.cloneNode(true));
+        return contentFragment;
+    }
 };
 const compile = (node) => {
     node._refPaths = genPath(node);

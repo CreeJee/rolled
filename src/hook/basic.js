@@ -28,7 +28,7 @@ import {
 //d.ts 잠제적 migrate
 export * from "./core.js";
 export * from "./event.js";
-const stateTask = getIdleQueue();
+const stateTask = getTimerQueue(); //timer queue or state queue
 const layoutTask = getAnimationQueue();
 const __channelMap = new Map();
 
@@ -119,7 +119,7 @@ function invokeReducer(reducer, state = {}, param = {}) {
 export function combineReducers(reducerObject) {
     const entryKeys = Object.keys(reducerObject);
     return () => {
-        const temp = {};
+        const temp = Object.create(null);
         for (let index = 0; index < entryKeys.length; index++) {
             const key = entryKeys[index];
             temp[key] = invokeReducer(reducerObject[key]);
@@ -130,8 +130,8 @@ export function combineReducers(reducerObject) {
 // hooks
 export function useState(context, initValue, _lazySetter) {
     const state = __stateEffect(context, initValue, _lazySetter);
-    // const __dispatch = state[1];
-    // __dispatch(initValue);
+    const __dispatch = state[1];
+    __dispatch(initValue);
     return state;
 }
 export function useLayoutState(context, initValue, _lazySetter) {
@@ -150,7 +150,6 @@ export function useEffect(context, onCycle, depArray = []) {
             ? // 비교필요
               !depArray.every((el, nth) => el.value === deps[nth])
             : true;
-
         if (isChange) {
             __cycleEffects(onCycle, (unMount) => {
                 typeof unMount === "function" &&
@@ -180,13 +179,8 @@ export function useReducer(context, reducer, initState, init) {
 class ChannelStruct extends Array {
     constructor(context, initValue) {
         super();
-        // const state = useState(context, initValue);
-        // this.state = new StateObject(
-        //     () => state[0],
-        //     (value) => void (state[0].value = value)
-        // );
         this.ownedContext = context;
-        this.state = useState(context, initValue);
+        this.state = __stateEffect(context, initValue);
     }
 }
 export function useChannel(context, channel, initValue = null, onObserve) {
@@ -252,6 +246,8 @@ export function reactiveMount(context, refName, componentTree) {
     } catch (e) {
         if (e instanceof LayoutGenError) {
             throw new LayoutGenError(`[ReactiveMount] ${e.message}`);
+        } else {
+            throw e;
         }
     }
 }
