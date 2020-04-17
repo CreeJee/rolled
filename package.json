@@ -1,6 +1,6 @@
 {
     "name": "rolled",
-    "version": "0.0.8-alpha",
+    "version": "0.0.9",
     "description": "Dom tools for better logic",
     "main": "index.js",
     "scripts": {

@@ -137,13 +137,30 @@ export const extractFragment = (strings, ...args) => {
         return contentFragment;
     }
 };
+/**
+ * @typedef {(node:Object)=>void} onCreateCompile
+ * @param {Node} ref
+ * @param {Object} content
+ * @param {onCreateCompile} fn
+ */
+const createCompile = (ref, content, fn) => {
+    let compiled = false;
+    ref.compile = () => {
+        if (!compiled) {
+            fn(content);
+            compiled = true;
+        } else {
+            throw new Error("already compiled tags");
+        }
+    };
+};
 const compile = (node) => {
     node._refPaths = genPath(node);
     node.collect = walker;
 };
 export const h = (strings, ...args) => {
     const content = extractFragment(strings, ...args).firstChild;
-    compile(content);
+    createCompile(content, content, compile);
     return content;
 };
 
@@ -162,10 +179,12 @@ const fragmentCollect = function (node = this) {
 };
 export const fragment = (strings, ...args) => {
     const content = extractFragment(strings, ...args);
-    fragmentCompile(content);
-    content.collect = fragmentCollect.bind({
+    const childObject = {
         childNodes: Array.from(content.childNodes),
-    });
+    };
+    // fix fragment compile
+    createCompile(content, childObject, fragmentCompile);
+    content.collect = fragmentCollect.bind(childObject);
     return content;
 };
 export default h;

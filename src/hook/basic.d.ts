@@ -1,4 +1,4 @@
-import { BaseLiteralElement } from "../index";
+import { BaseLiteralElement } from "../base/index";
 
 declare const HOOK_SYMBOL:  unique symbol;
 type Dispatcher<T> = (p: T) => void
@@ -80,7 +80,7 @@ export type RendererType<PropTypes> = PureComponent<PropTypes> | hookedType<Prop
 export function hasHook(component: ComponentRenderer<any>): Boolean;
 export function getHook(component: ComponentRenderer<any>): HookContext
 export function useGlobalHook(hook: HookResolver<any>): void
-export function invokeEvent(hookContext: HookContext, eventName: __keyableTypes): void
+export function invokeEvent(hookContext: HookContext<any>, eventName: __keyableTypes): void
 // 오모한 ReducerObject generic 재거
 export function combineReducers(reducerObject: ReducerObject<any, object>): object
 export function bindHook<PropTypes extends object>(props: PropTypes): HookResolver<PropTypes> & HookContext<PropTypes> 
@@ -90,5 +90,5 @@ export function c<
 >(
     component: __ComponentRenderType,
     props: PropTypes,
-    children: RendererType<any>[]
+    children: RendererType<any>[] | null
 ): hookedType<PropTypes, BaseLiteralElement>

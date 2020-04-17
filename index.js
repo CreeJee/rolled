@@ -1,6 +1,6 @@
-import * as _syntheticEvents from "./src/syntheticEvents.js";
-import * as _styles from "./src/styles.js";
-import * as _dom from "./src/index.js";
+import * as _syntheticEvents from "./src/base/syntheticEvents.js";
+import * as _styles from "./src/base/styles.js";
+import * as _dom from "./src/base/index.js";
 import * as _hook from "./src/hook/basic.js";
 import * as _renderer from "./src/hook/index.js";
 import * as _keyed from "./src/base/keyed.js";
@@ -23,5 +23,5 @@ export default {
     renderer,
     keyed,
     reconcile,
-    reuseNodes
+    reuseNodes,
 };

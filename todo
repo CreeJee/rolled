@@ -1,5 +1,0 @@
-keyed, reconcile, reuseNodes 등의 랜더러를 documentFragment를 이용한 최적화
-    한다고하면 태그 ref 마킹이 걸리고
-        그렇다고 강제로 타이머로 밀어버리자니
-            reactiveMount 의 ref등을 정확히 언제 붙일수있을지 알수없고
-                

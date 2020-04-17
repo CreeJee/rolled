@@ -1,12 +1,12 @@
-
 // Picked from
 // https://github.com/adamhaile/surplus/blob/master/src/runtime/content.ts#L368
 
+export const fragmentTemplate = document.createDocumentFragment();
 // return an array of the indices of ns that comprise the longest increasing subsequence within ns
 export function longestPositiveIncreasingSubsequence(ns, newStart) {
     var seq = [],
-        is  = [],
-        l   = -1,
+        is = [],
+        l = -1,
         pre = new Array(ns.length);
 
     for (var i = newStart, len = ns.length; i < len; i++) {
@@ -17,7 +17,7 @@ export function longestPositiveIncreasingSubsequence(ns, newStart) {
         if (j === l) {
             l++;
             seq[l] = n;
-            is[l]  = i;
+            is[l] = i;
         } else if (n < seq[j + 1]) {
             seq[j + 1] = n;
             is[j + 1] = i;

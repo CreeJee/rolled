@@ -1,7 +1,7 @@
 import { hasHook, getHook, LayoutGenError } from "./core.js";
+import { hElement } from "../base/index.js";
 import { reconcile } from "../base/reconcile.js";
-import { reuseNodes } from "../base/reuseNodes.js";
-import { classListNodeType } from "../index.js";
+import { classListNodeType } from "../base/index.js";
 import { invokeEvent } from "./event.js";
 const onUpdate = (node, current, key) => {
     switch (node.nodeType) {
@@ -61,13 +61,7 @@ export const __generateComponent = (item, component) => {
     if (view instanceof Promise) {
         throw new LayoutGenError("component is not Promise (use rolled.lazy)");
     }
-    const hook = getHook(view);
-    const isHook = hasHook(view);
-    const rendered = __bindDom(isHook ? hook.props : item, view);
-    if (isHook) {
-        invokeEvent(getHook(view), "mount");
-    }
-    return rendered;
+    return view;
 };
 export const __forceGenerateTags = (
     parent,
@@ -76,41 +70,50 @@ export const __forceGenerateTags = (
     refCollector = [],
     renderer = reconcile
 ) => {
+    /** @type {[hElement, object][]} */
+    const createdViews = [];
     renderer(
         parent,
         renderedItems,
         childs,
         (hoc, nth) => {
-            const view = __generateComponent({}, hoc);
-            // tricky solution
-            // @ts-ignore
-            if (view.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-                throw new LayoutGenError("slot is must not fragment");
-            }
+            const item = {};
+            const view = __generateComponent(item, hoc);
             refCollector.splice(nth, 0, view);
+            createdViews.push([view, item]);
             return view;
         },
         (node, item) => node.update(item)
     );
+    for (const [view, item] of createdViews.splice(0)) {
+        const hook = getHook(view);
+        const isHook = hasHook(view);
+        view.compile();
+        __bindDom(isHook ? hook.props : item, view);
+        if (isHook) {
+            invokeEvent(getHook(view), "mount");
+        }
+    }
     return refCollector;
 };
-export const __generateChildren = (parent, childs, renderer = reconcile) => {
+export const __generateChildren = (parent, childs) => {
     let renderedItems = [];
     let components = [];
     if (Array.isArray(childs)) {
         if (!("update" in parent)) {
             parent.update = function (data) {
-                renderer(
-                    parent,
-                    renderedItems,
-                    childs,
-                    (hoc, nth) => {
-                        const view = __generateComponent({}, hoc);
-                        components[nth] = view;
-                        return view;
-                    },
-                    (node, item) => node.update(item)
-                );
+                // reconcile(
+                //     parent,
+                //     renderedItems,
+                //     childs,
+                //     (hoc, nth) => {
+                //         const view = __generateComponent({}, hoc);
+                //         components[nth] = view;
+                //         return view;
+                //     },
+                //     (node, item) => node.update(item)
+                // );
+                __forceGenerateTags(parent, renderedItems, childs, components);
                 renderedItems = childs.slice();
             };
         }

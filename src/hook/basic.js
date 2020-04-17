@@ -15,7 +15,7 @@ import {
     bindGlobalHook,
     setHook,
 } from "./core.js";
-import { h } from "../index.js";
+import { h } from "../base/index.js";
 import { getAnimationQueue, getTimerQueue, getIdleQueue } from "./taskQueue.js";
 import {
     invokeEvent,
@@ -28,8 +28,16 @@ import {
 //d.ts 잠제적 migrate
 export * from "./core.js";
 export * from "./event.js";
-const stateTask = getTimerQueue(); //timer queue or state queue
+const noop = () => {};
+let __stateTask = getIdleQueue(); //timer queue or state queue
+try {
+    __stateTask = getIdleQueue();
+    __stateTask.add(noop);
+} catch (e) {
+    __stateTask = getTimerQueue();
+}
 const layoutTask = getAnimationQueue();
+const stateTask = __stateTask;
 const __channelMap = new Map();
 
 //effects layout

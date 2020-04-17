@@ -1,4 +1,8 @@
-import { noOpUpdate, longestPositiveIncreasingSubsequence } from "../utils.js";
+import {
+    noOpUpdate,
+    longestPositiveIncreasingSubsequence,
+    fragmentTemplate,
+} from "./utils.js";
 
 // This is almost straightforward implementation of reconcillation algorithm
 // based on ivi documentation:
@@ -47,10 +51,11 @@ export function keyed(
             mode = afterNode !== undefined ? 1 : 0;
         for (let i = 0, len = data.length; i < len; i++) {
             node = createFn(data[i], i);
-            mode
-                ? parent.insertBefore(node, afterNode)
-                : parent.appendChild(node);
+            fragmentTemplate.appendChild(node);
         }
+        mode
+            ? parent.insertBefore(fragmentTemplate, afterNode)
+            : parent.appendChild(fragmentTemplate);
         return;
     }
 

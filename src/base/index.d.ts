@@ -10,6 +10,7 @@ interface BaseLiteralElement {
     _refPaths?: Ref[];
     //collect start node needs optional
     collect(node? : Node): RefObj;
+    compile(): void | never;
 }
 interface hElement extends HTMLElement,BaseLiteralElement {}
 interface fragmentElement extends DocumentFragment, BaseLiteralElement{}

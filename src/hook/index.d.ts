@@ -1,5 +1,5 @@
 import {RendererType} from "./basic"
-import { hElement } from "../index";
+import { hElement } from "../base/index";
 
 export function bindDomMutation(parent: HTMLElement): HTMLElement;
 export function render(parent: HTMLElement, component: RendererType<any>): HTMLElement;

@@ -1,7 +1,7 @@
-import { __generateComponent } from "./dom.js";
+import { __generateComponent, __forceGenerateTags } from "./dom.js";
 import { reuseNodes } from "../base/reuseNodes.js";
 import { getHook, hasHook, invokeEvent } from "./basic.js";
-import { fragment, h } from "../index.js";
+import { fragment, h } from "../base/index.js";
 
 //JUST global render do not duplicated renderer
 const __renderObserver = new MutationObserver((mutations) => {
@@ -28,18 +28,19 @@ const bindDomMutation = (parent) => {
 };
 export const render = (parent, component) => {
     let renderedItems = [];
+    let refCollector = [];
     bindDomMutation(parent);
     parent.update = function (data) {
-        reuseNodes(
+        __forceGenerateTags(
             parent,
             renderedItems,
             data,
-            (item) => __generateComponent(item, component),
-            (node, item) => node.update(item)
+            refCollector,
+            reuseNodes
         );
         renderedItems = data.slice();
     };
-    parent.update([{}]);
+    parent.update([component]);
     return parent;
 };
 
@@ -60,5 +61,6 @@ export const shadow = (strings, ...args) => {
     bindDomMutation(shadow);
     shadow.appendChild(result);
     root.collect = ($dom = result) => result.collect.call(null, shadow);
+    root.compile = () => result.compile();
     return root;
 };

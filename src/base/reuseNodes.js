@@ -1,4 +1,4 @@
-import { noOpUpdate } from "../utils.js";
+import { noOpUpdate } from "./utils.js";
 
 export function reuseNodes(
     parent,
