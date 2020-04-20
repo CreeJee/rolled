@@ -15,7 +15,7 @@ import {
     bindGlobalHook,
     setHook,
 } from "./core.js";
-import { h } from "../base/index.js";
+import { h, Ref } from "../base/index.js";
 import { getAnimationQueue, getTimerQueue, getIdleQueue } from "./taskQueue.js";
 import {
     invokeEvent,
@@ -25,6 +25,28 @@ import {
     SYSTEM_EVENT_NAME,
 } from "./event.js";
 
+export class LazyComponent {
+    constructor(load, loadingComponent) {
+        load.then((LoadedComponent) => {
+            const $parent = this.current.parentNode;
+            const isHook = hasHook(this.current);
+            const hook = isHook ? getHook(this.current) : null;
+            let current = isHook
+                ? __moveHook(hook, LoadedComponent)
+                : LoadedComponent(...this.props);
+            $parent.insertBefore(current, this.current);
+            this.current.remove();
+            this.current = current;
+        });
+        if (typeof loadingComponent !== "function") {
+            throw new LayoutGenError("loading component must function");
+        }
+        this.loading = (...args) => {
+            this.props = args;
+            return (this.current = loadingComponent(...args));
+        };
+    }
+}
 //d.ts 잠제적 migrate
 export * from "./core.js";
 export * from "./event.js";
@@ -181,8 +203,6 @@ export function useReducer(context, reducer, initState, init) {
     };
     return new StateObject(() => currentState, dispatcher);
 }
-// export function useMemo(context, onCycle, deps) {}
-
 //gc에 대해서 해결할 필요가이씀
 class ChannelStruct extends Array {
     constructor(context, initValue) {
@@ -285,28 +305,6 @@ export function memo(component, memorizedSymbol = Symbol.for("@@Memo")) {
         }
     };
 }
-export class LazyComponent {
-    constructor(load, loadingComponent) {
-        load.then((LoadedComponent) => {
-            const $parent = this.current.parentNode;
-            const isHook = hasHook(this.current);
-            const hook = isHook ? getHook(this.current) : null;
-            let current = isHook
-                ? __moveHook(hook, LoadedComponent)
-                : LoadedComponent(...this.props);
-            $parent.insertBefore(current, this.current);
-            this.current.remove();
-            this.current = current;
-        });
-        if (typeof loadingComponent !== "function") {
-            throw new LayoutGenError("loading component must function");
-        }
-        this.loading = (...args) => {
-            this.props = args;
-            return (this.current = loadingComponent(...args));
-        };
-    }
-}
 function __defaultLazy() {
     //TODO: generate component
     return h`<div style="display:none;"></div>`;
@@ -357,8 +355,13 @@ export function bindHook(props = {}, children) {
     events[SYSTEM_EVENT_NAME.$unMount].push(__unMountCycle(hookContext));
     return Object.assign(hookContext, bindGlobalHook(hookContext));
 }
-export function __compileComponent(component, tagProps, hookContext, children) {
-    const current = component(tagProps, hookContext);
+function __createComponent(component, tagProps, hookContext) {
+    const componentNode =
+        component instanceof LazyComponent ? component.loading : component;
+    return componentNode(tagProps, hookContext);
+}
+function __compileComponent(component, tagProps, hookContext, children) {
+    const current = __createComponent(component, tagProps, hookContext);
     const needChild = Array.isArray(children);
     if (!(current instanceof Node)) {
         throw new HookError("render function is must node");
@@ -407,11 +410,11 @@ function __moveHook(oldHook, component) {
     return generated;
 }
 export const c = (component, props = {}, children) => {
-    const hoc = (item) => {
+    return (_item) => {
         const tagProps = { ...props };
         const hookContext = bindHook(tagProps, children);
         const current = __compileComponent(
-            component instanceof LazyComponent ? component.loading : component,
+            component,
             tagProps,
             hookContext,
             children
@@ -419,5 +422,34 @@ export const c = (component, props = {}, children) => {
         setHook(current, hookContext);
         return current;
     };
-    return hoc;
+};
+export class VirtualComponent {
+    constructor(context) {
+        this.context = context;
+        this._refPaths = [];
+    }
+    // append(newNode) {
+    //     $children.splice($children.length, 0, newNode);
+    // }
+    update(_data) {
+        throw new LayoutGenError("need [VirtualLayout.update]");
+    }
+    remove() {
+        throw new LayoutGenError("need [VirtualLayout.remove]");
+    }
+}
+export const virtual = (LayoutClass, component, props, children) => {
+    return (_item) => {
+        const hookContext = bindHook({ ...props }, children);
+        const current = __createComponent(component, props, hookContext);
+        if (current instanceof VirtualComponent) {
+            const item = new LayoutClass(current);
+            setHook(item, hookContext);
+            return item;
+        } else {
+            throw new LayoutGenError(
+                "LayoutClass is must extends VirtualLayout"
+            );
+        }
+    };
 };

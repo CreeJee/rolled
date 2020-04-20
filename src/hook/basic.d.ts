@@ -1,6 +1,6 @@
-import { BaseLiteralElement } from "../base/index";
+import { BaseLiteralElement, RefObj } from "../base/index";
+import {HOOK_SYMBOL} from "./Symbol";
 
-declare const HOOK_SYMBOL:  unique symbol;
 type Dispatcher<T> = (p: T) => void
 export type StateObject<T, Data = T> = [Context<T>, Dispatcher<Data>];
 export class Context<T> {
@@ -16,6 +16,12 @@ export class ChannelStruct<T> extends Array<HookContext> {
 }
 export class LazyComponent<PropTypes>{
     constructor(load: ()=> Promise<RendererType<PropTypes>>, loadingComponent: ()=> RendererType<PropTypes>)
+}
+export class VirtualComponent<PropTypes>{
+    context: HookContext<PropTypes>;
+    constructor(context: HookContext<PropTypes>);
+    update(data: PropTypes): void | never;
+    remove(): void | never;
 }
 type ReducerResponse<T> = StateObject<T, Object>;
 type ReducerInit<T, Action> = (state: T, action: Action) => T
@@ -92,3 +98,13 @@ export function c<
     props: PropTypes,
     children: RendererType<any>[] | null
 ): hookedType<PropTypes, BaseLiteralElement>
+
+export function virtual<
+    PropTypes = any,
+    __ComponentRenderType = ComponentRenderer<PropTypes>,
+>(
+    LayoutClass: VirtualComponent<PropTypes>,
+    component: __ComponentRenderType, 
+    props: PropTypes, 
+    children: RendererType<any>[] | null
+) : hookedType<PropTypes, BaseLiteralElement>
