@@ -24,6 +24,7 @@ import {
     boundEvent,
     SYSTEM_EVENT_NAME,
 } from "./event.js";
+import reconcile from "../base/reconcile.js";
 
 export class LazyComponent {
     constructor(load, loadingComponent) {
@@ -243,7 +244,6 @@ export function reactiveMount(context, refName, componentTree) {
         throw new LayoutGenError("current context is not mounted dom");
     }
     const refs = context.$self.collect();
-    const reactiveSymbol = Symbol.for(`@@reactiveMountedTag`);
     refName = refName.toLowerCase();
     if (!(refName in refs)) {
         throw new LayoutGenError(`Ref "${refName}" must contains component`);
@@ -252,6 +252,13 @@ export function reactiveMount(context, refName, componentTree) {
         throw new LayoutGenError(`ComponentTree is must Array`);
     }
     const refTag = refs[refName];
+    return reactiveTagMount(refTag, componentTree);
+}
+export function reactiveTagMount(refTag, componentTree, renderer = reconcile) {
+    if (!(refTag instanceof HTMLElement)) {
+        throw new LayoutGenError(`refTag must HTMLElement`);
+    }
+    const reactiveSymbol = Symbol.for(`@@reactiveMountedTag`);
     if (!Array.isArray(refTag[reactiveSymbol])) {
         Object.defineProperty(refTag, reactiveSymbol, {
             writable: false,
@@ -268,7 +275,9 @@ export function reactiveMount(context, refName, componentTree) {
             ...__forceGenerateTags(
                 refTag,
                 refTag[reactiveSymbol],
-                componentTree
+                componentTree,
+                [],
+                renderer
             )
         );
     } catch (e) {
@@ -355,7 +364,7 @@ export function bindHook(props = {}, children) {
     events[SYSTEM_EVENT_NAME.$unMount].push(__unMountCycle(hookContext));
     return Object.assign(hookContext, bindGlobalHook(hookContext));
 }
-function __createComponent(component, tagProps, hookContext) {
+export function __createComponent(component, tagProps, hookContext) {
     const componentNode =
         component instanceof LazyComponent ? component.loading : component;
     return componentNode(tagProps, hookContext);
@@ -421,35 +430,5 @@ export const c = (component, props = {}, children) => {
         );
         setHook(current, hookContext);
         return current;
-    };
-};
-export class VirtualComponent {
-    constructor(context) {
-        this.context = context;
-        this._refPaths = [];
-    }
-    // append(newNode) {
-    //     $children.splice($children.length, 0, newNode);
-    // }
-    update(_data) {
-        throw new LayoutGenError("need [VirtualLayout.update]");
-    }
-    remove() {
-        throw new LayoutGenError("need [VirtualLayout.remove]");
-    }
-}
-export const virtual = (LayoutClass, component, props, children) => {
-    return (_item) => {
-        const hookContext = bindHook({ ...props }, children);
-        const current = __createComponent(component, props, hookContext);
-        if (current instanceof VirtualComponent) {
-            const item = new LayoutClass(current);
-            setHook(item, hookContext);
-            return item;
-        } else {
-            throw new LayoutGenError(
-                "LayoutClass is must extends VirtualLayout"
-            );
-        }
     };
 };

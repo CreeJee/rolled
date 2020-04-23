@@ -72,6 +72,9 @@ export const __forceGenerateTags = (
 ) => {
     /** @type {[hElement, object][]} */
     const createdViews = [];
+    if (!(parent instanceof HTMLElement)) {
+        throw new Error("parent target is must HTMLElement");
+    }
     renderer(
         parent,
         renderedItems,
@@ -79,6 +82,9 @@ export const __forceGenerateTags = (
         (hoc, nth) => {
             const item = {};
             const view = __generateComponent(item, hoc);
+            if (!(view instanceof HTMLElement)) {
+                throw new Error("each view is must HTMLElement");
+            }
             refCollector.splice(nth, 0, view);
             createdViews.push([view, item]);
             return view;

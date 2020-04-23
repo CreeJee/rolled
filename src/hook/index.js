@@ -2,6 +2,7 @@ import { __generateComponent, __forceGenerateTags } from "./dom.js";
 import { reuseNodes } from "../base/reuseNodes.js";
 import { getHook, hasHook, invokeEvent } from "./basic.js";
 import { fragment, h } from "../base/index.js";
+import { LayoutGenError } from "./core.js";
 
 //JUST global render do not duplicated renderer
 const __renderObserver = new MutationObserver((mutations) => {
@@ -29,6 +30,11 @@ const bindDomMutation = (parent) => {
 export const render = (parent, component) => {
     let renderedItems = [];
     let refCollector = [];
+    if (!(parent instanceof HTMLElement) || !parent.isConnected) {
+        throw new LayoutGenError(
+            "render parent must HTMLElement and connected from document tree"
+        );
+    }
     bindDomMutation(parent);
     parent.update = function (data) {
         __forceGenerateTags(

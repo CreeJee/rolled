@@ -5,3 +5,9 @@
   - now "hElement.collect" is must active after useEffect
   - fast create path is used DocumentFragment 
 - change directoy struct
+#### version 0.10
+- virtual component
+  - virtual generator added 
+  - dom ref Component added (used exist dom Element)
+- hook/basic
+  - reactiveTagMount added
