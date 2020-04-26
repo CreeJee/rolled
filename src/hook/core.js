@@ -53,6 +53,25 @@ export class StateObject {
         yield this[1];
     }
 }
+export class VirtualBaseComponent {
+    //impl
+    onUpdate(_data) {
+        throw new LayoutGenError("need [VirtualLayout.update]");
+    }
+    onRemove() {
+        throw new LayoutGenError("need [VirtualLayout.remove]");
+    }
+    isUpdate(current, before) {
+        return true;
+    }
+    // mock prototype extends chain
+    get nodeType() {
+        return VirtualBaseComponent.nodeType;
+    }
+    static get nodeType() {
+        return "VirtualComponent";
+    }
+}
 
 // Errors
 export class LayoutGenError extends Error {

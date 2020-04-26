@@ -11,6 +11,15 @@ export class Context<T> {
     [Symbol.toPrimitive](): T;
     static convert<T>(value: any, nth: number): Context<T>;
 }
+export class VirtualBaseComponent<PropTypes> {
+    //impl
+    onUpdate(data: PropTypes): never | void;
+    onRemove(): never | void;
+    isUpdate(current: PropTypes, old: PropTypes): boolean;
+    // mock prototype extends chain
+    get nodeType(): string;
+    static get nodeType(): string;
+}
 export class ChannelStruct<T> extends Array<HookContext> {
     state: StateObject<T>;
 }
@@ -129,10 +138,15 @@ export type RendererType<PropTypes, ResultType = BaseLiteralElement> =
 export function hasHook(component: ComponentRenderer<any>): Boolean;
 export function getHook(component: ComponentRenderer<any>): HookContext;
 export function useGlobalHook(hook: HookResolver<any>): void;
+
 export function invokeEvent(
     hookContext: HookContext<any>,
-    eventName: __keyableTypes
+    eventName: __keyableTypes,
+    options: {
+        nth?: number;
+    }
 ): void;
+
 // 오모한 ReducerObject generic 재거
 export function combineReducers(
     reducerObject: ReducerObject<any, object>

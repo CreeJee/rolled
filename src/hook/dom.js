@@ -1,9 +1,16 @@
-import { hasHook, getHook, LayoutGenError } from "./core.js";
+import {
+    hasHook,
+    getHook,
+    LayoutGenError,
+    VirtualBaseComponent,
+} from "./core.js";
 import { hElement } from "../base/index.js";
 import { reconcile } from "../base/reconcile.js";
 import { classListNodeType } from "../base/index.js";
 import { invokeEvent } from "./event.js";
-const onUpdate = (node, current, key) => {
+import { DomComponent } from "./virtual.js";
+import reuseNodes from "../base/reuseNodes.js";
+const defaultUpdate = (node, current, key) => {
     switch (node.nodeType) {
         // case Node.ELEMENT_NODE:
         //     node.setAttribute(key, current);
@@ -22,7 +29,7 @@ const onUpdate = (node, current, key) => {
 const noOpCond = (current, before) => true;
 const valueOf = (value) =>
     typeof value === "object" ? value.valueOf() : value;
-const updater = (old, view, isUpdate = noOpCond) => {
+const updater = (old, view, isUpdate = noOpCond, onUpdate = defaultUpdate) => {
     //needs bound self
     return function __nestedUpdate__(item) {
         const collector = view.collect(this);
@@ -51,12 +58,24 @@ export const __bindDom = ({ ...item }, itemGroup) => {
             itemGroup.update = updater(item, itemGroup);
             updater({}, itemGroup).call(itemGroup, item);
             break;
+        case VirtualBaseComponent.nodeType:
+            itemGroup.update = updater(
+                item,
+                itemGroup,
+                itemGroup.isUpdate,
+                itemGroup.onUpdate
+            );
+            updater({}, itemGroup, itemGroup.isUpdate, itemGroup.onUpdate).call(
+                itemGroup,
+                item
+            );
+            break;
         default:
             throw new LayoutGenError("unacceptable nodes");
     }
     return itemGroup;
 };
-export const __generateComponent = (item, component) => {
+export const __invokeComponent = (item, component) => {
     let view = component(item);
     if (view instanceof Promise) {
         throw new LayoutGenError("component is not Promise (use rolled.lazy)");
@@ -68,11 +87,16 @@ export const __forceGenerateTags = (
     renderedItems,
     childs,
     refCollector = [],
-    renderer = reconcile
+    renderer = parent instanceof HTMLElement ? reconcile : reuseNodes
 ) => {
     /** @type {[hElement, object][]} */
     const createdViews = [];
-    if (!(parent instanceof HTMLElement)) {
+    if (
+        !(
+            parent instanceof HTMLElement ||
+            parent instanceof VirtualBaseComponent
+        )
+    ) {
         throw new Error("parent target is must HTMLElement");
     }
     renderer(
@@ -80,22 +104,33 @@ export const __forceGenerateTags = (
         renderedItems,
         childs,
         (hoc, nth) => {
-            const item = {};
-            const view = __generateComponent(item, hoc);
-            if (!(view instanceof HTMLElement)) {
-                throw new Error("each view is must HTMLElement");
+            // const item = {};
+            const view = __invokeComponent({}, hoc);
+            getHook(view).parent = getHook(parent);
+            if (
+                !(
+                    view instanceof HTMLElement ||
+                    view instanceof VirtualBaseComponent
+                )
+            ) {
+                throw new Error(
+                    "each view is must [HTMLElement|VirtualBaseComponent]"
+                );
             }
             refCollector.splice(nth, 0, view);
-            createdViews.push([view, item]);
-            return view;
+            createdViews.push(view);
+            return view instanceof DomComponent ? view.$base : view;
         },
-        (node, item) => node.update(item)
+        (node, item) => {
+            node.update(item);
+        }
     );
-    for (const [view, item] of createdViews.splice(0)) {
+    const updatedViews = createdViews.splice(0);
+    for (const view of updatedViews) {
         const hook = getHook(view);
         const isHook = hasHook(view);
         view.compile();
-        __bindDom(isHook ? hook.props : item, view);
+        __bindDom(isHook ? hook.props : {}, view);
         if (isHook) {
             invokeEvent(getHook(view), "mount");
         }
@@ -108,17 +143,6 @@ export const __generateChildren = (parent, childs) => {
     if (Array.isArray(childs)) {
         if (!("update" in parent)) {
             parent.update = function (data) {
-                // reconcile(
-                //     parent,
-                //     renderedItems,
-                //     childs,
-                //     (hoc, nth) => {
-                //         const view = __generateComponent({}, hoc);
-                //         components[nth] = view;
-                //         return view;
-                //     },
-                //     (node, item) => node.update(item)
-                // );
                 __forceGenerateTags(parent, renderedItems, childs, components);
                 renderedItems = childs.slice();
             };

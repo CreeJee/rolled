@@ -1,9 +1,4 @@
-import {
-    __generateChildren,
-    __generateComponent,
-    __bindDom,
-    __forceGenerateTags,
-} from "./dom.js";
+import { __generateChildren, __bindDom, __forceGenerateTags } from "./dom.js";
 import {
     HookError,
     LayoutGenError,
@@ -14,6 +9,7 @@ import {
     removeHook,
     bindGlobalHook,
     setHook,
+    VirtualBaseComponent,
 } from "./core.js";
 import { h, Ref } from "../base/index.js";
 import { getAnimationQueue, getTimerQueue, getIdleQueue } from "./taskQueue.js";
@@ -23,9 +19,12 @@ import {
     clearEvent,
     boundEvent,
     SYSTEM_EVENT_NAME,
+    __createEvent,
+    __getEvent,
 } from "./event.js";
+import { __createStore } from "./store.js";
 import reconcile from "../base/reconcile.js";
-
+import reuseNodes from "../base/reuseNodes.js";
 export class LazyComponent {
     constructor(load, loadingComponent) {
         load.then((LoadedComponent) => {
@@ -74,7 +73,7 @@ function __stateLayout(context, initValue, setter) {
                 let contextValue = context.state[nth];
                 contextValue.value = value;
                 if (typeof setter === "function") {
-                    setter(contextValue);
+                    setter(contextValue, nth);
                 }
             } else {
                 throw new Error("dispatch only actived Context");
@@ -97,10 +96,10 @@ function __stateEffect(
         : _lazySetter__useEffect,
     _taskQueue = stateTask
 ) {
-    return __stateLayout(context, initValue, (contextValue) => {
+    return __stateLayout(context, initValue, (contextValue, nth) => {
         _taskQueue.add(() => {
             contextValue.value = _lazySetter(contextValue.value);
-            invokeEvent(context, EVENT_NAME.mount);
+            invokeEvent(context, EVENT_NAME.mount, { nth });
         });
         return contextValue;
     });
@@ -252,10 +251,15 @@ export function reactiveMount(context, refName, componentTree) {
         throw new LayoutGenError(`ComponentTree is must Array`);
     }
     const refTag = refs[refName];
-    return reactiveTagMount(refTag, componentTree);
+    return reactiveTagMount(refTag, componentTree, reconcile);
 }
-export function reactiveTagMount(refTag, componentTree, renderer = reconcile) {
-    if (!(refTag instanceof HTMLElement)) {
+export function reactiveTagMount(refTag, componentTree, renderer = reuseNodes) {
+    if (
+        !(
+            refTag instanceof HTMLElement ||
+            refTag instanceof VirtualBaseComponent
+        )
+    ) {
         throw new LayoutGenError(`refTag must HTMLElement`);
     }
     const reactiveSymbol = Symbol.for(`@@reactiveMountedTag`);
@@ -269,17 +273,17 @@ export function reactiveTagMount(refTag, componentTree, renderer = reconcile) {
     }
     const renderedItems = refTag[reactiveSymbol];
     try {
-        const unMountedRef = renderedItems.splice(
-            0,
-            renderedItems.length,
-            ...__forceGenerateTags(
-                refTag,
-                refTag[reactiveSymbol],
-                componentTree,
-                [],
-                renderer
-            )
+        //do not force mount
+        //todo: optimize
+        const rendererItems = __forceGenerateTags(
+            refTag,
+            renderedItems,
+            componentTree,
+            [],
+            renderer
         );
+        renderedItems.splice(0, renderedItems.length, ...rendererItems);
+        // debugger;
     } catch (e) {
         if (e instanceof LayoutGenError) {
             throw new LayoutGenError(`[ReactiveMount] ${e.message}`);
@@ -323,23 +327,20 @@ export function lazy(load, loading = __defaultLazy) {
 }
 //bound hooks
 export function bindHook(props = {}, children) {
+    const eventData = __createEvent();
     const hookContext = {
         state: [],
         props,
+        parent: null,
         children,
         isMemo: false,
         isMounted: false,
         $dom: [],
         $children: [],
+        ...__createStore(), /// search from context tree store value
         $self: null,
         $slot: null,
-        events: {
-            [EVENT_NAME.mount]: [],
-            [EVENT_NAME.unMount]: [],
-            [SYSTEM_EVENT_NAME.$mount]: [],
-            [SYSTEM_EVENT_NAME.$unMount]: [],
-            [EVENT_NAME.watch]: [],
-        },
+        ...eventData,
         useState(value) {
             return useState(hookContext, value);
         },
@@ -359,9 +360,9 @@ export function bindHook(props = {}, children) {
             return reactiveMount(hookContext, refName, componentTree);
         },
     };
-    const events = hookContext.events;
-    events[SYSTEM_EVENT_NAME.$mount].push(__onMountCycle(hookContext));
-    events[SYSTEM_EVENT_NAME.$unMount].push(__unMountCycle(hookContext));
+    const events = __getEvent(hookContext);
+    events.get(SYSTEM_EVENT_NAME.$mount).push(__onMountCycle(hookContext));
+    events.get(SYSTEM_EVENT_NAME.$unMount).push(__unMountCycle(hookContext));
     return Object.assign(hookContext, bindGlobalHook(hookContext));
 }
 export function __createComponent(component, tagProps, hookContext) {

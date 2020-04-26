@@ -1,2 +1,1 @@
-
-export const HOOK_SYMBOL:  unique symbol;
+export const HOOK_SYMBOL: unique symbol;

@@ -1,4 +1,4 @@
-import { __generateComponent, __forceGenerateTags } from "./dom.js";
+import { __forceGenerateTags } from "./dom.js";
 import { reuseNodes } from "../base/reuseNodes.js";
 import { getHook, hasHook, invokeEvent } from "./basic.js";
 import { fragment, h } from "../base/index.js";

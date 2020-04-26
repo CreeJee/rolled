@@ -1,13 +1,20 @@
-import { ComponentRenderer, RendererType, hookedType } from "./basic";
-
-export class VirtualComponent<PropTypes, BaseType> {
-    constructor($base: BaseType);
+import {
+    ComponentRenderer,
+    RendererType,
+    hookedType,
+    HookContext,
+    VirtualBaseComponent,
+} from "./basic";
+export class VirtualComponent<PropTypes, BaseType> extends VirtualBaseComponent<
+    PropTypes
+> {
+    constructor($base: BaseType, context: HookContext<PropTypes>);
+    $self: HookContext<PropTypes>;
     $base: BaseType;
     _refPaths: [];
     collect(): {};
     compile(): void;
-    update(data: PropTypes): void | never;
-    remove(): void | never;
+    update(): void | never;
     static createInstance<BaseType, MergeType extends typeof VirtualComponent>(
         $ref: BaseType
     ): BaseType & InstanceType<MergeType>;
@@ -16,8 +23,8 @@ export class DomComponent<
     PropTypes,
     BaseType = HTMLElement
 > extends VirtualComponent<PropTypes, BaseType> {
-    update(data: PropTypes): void;
-    remove(): void;
+    onUpdate(data: PropTypes): void;
+    onRemove(): void;
 }
 export function virtual<
     BaseType,
