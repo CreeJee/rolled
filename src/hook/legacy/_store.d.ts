@@ -1,4 +1,4 @@
-import { __keyableTypes, HookContext } from "./basic";
+import { __keyableTypes, HookContext } from "./_basic";
 
 export function __createStore(): {
     $store: Map<__keyableTypes, any>;

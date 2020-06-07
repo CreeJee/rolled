@@ -1,7 +1,7 @@
 import { __forceGenerateTags } from "./dom.js";
 import { reuseNodes } from "../base/reuseNodes.js";
 import { getHook, hasHook, invokeEvent } from "./basic.js";
-import { fragment, h } from "../base/index.js";
+import { fragment, h, BaseLiteralElement } from "../base/index.js";
 import { LayoutGenError } from "./core.js";
 
 //JUST global render do not duplicated renderer
@@ -9,7 +9,8 @@ const __renderObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
         const { removedNodes } = mutation;
         if (removedNodes.length > 0) {
-            for (const node of removedNodes) {
+            for (let index = 0; index < removedNodes.length; index++) {
+                const node = removedNodes[index];
                 if (hasHook(node)) {
                     invokeEvent(getHook(node), "unMount");
                 }
@@ -23,7 +24,7 @@ const config = {
     childList: true,
     subtree: true,
 };
-const bindDomMutation = (parent) => {
+const bindDomMutation = (parent: Node) => {
     __renderObserver.observe(parent, config);
     return parent;
 };

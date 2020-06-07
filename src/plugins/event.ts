@@ -1,13 +1,15 @@
+import { Context } from "../hook/core";
+declare module "./components" {}
 const lifeCycleSymbol = "$";
-function __generateLifeCycleName(name) {
+function __generateLifeCycleName(name: string) {
     return lifeCycleSymbol + name;
 }
-function __isLifeCycleEvent(name) {
+function __isLifeCycleEvent(name: string) {
     return name[0] === lifeCycleSymbol;
 }
 export class EventError extends Error {
-    constructor(...args) {
-        super(...args);
+    constructor(msg: string) {
+        super(msg);
     }
 }
 export const EVENT_NAME = {
@@ -19,17 +21,17 @@ export const SYSTEM_EVENT_NAME = {
     $mount: __generateLifeCycleName("mount"),
     $unMount: __generateLifeCycleName("unMount"),
 };
-export function expectEvent(context, eventName) {
-    if (
-        context &&
-        typeof context === "object" &&
-        context !== null &&
-        (eventName in EVENT_NAME || eventName in SYSTEM_EVENT_NAME)
-    ) {
-        return;
-    }
-    throw new EventError(`${eventName.toString()} is not supported Event`);
-}
+// export function expectEvent<T>(context: Context<T>, eventName) {
+//     if (
+//         context &&
+//         typeof context === "object" &&
+//         context !== null &&
+//         (eventName in EVENT_NAME || eventName in SYSTEM_EVENT_NAME)
+//     ) {
+//         return;
+//     }
+//     throw new EventError(`${eventName.toString()} is not supported Event`);
+// }
 export function invokeEvent(hookContext, eventName, { nth = null } = {}) {
     const events = hookContext.events;
     const item = events.get(eventName);

@@ -4,20 +4,30 @@ import {
     LayoutGenError,
     VirtualBaseComponent,
 } from "./core.js";
-import { hElement } from "../base/index.js";
+import {
+    BaseLiteralElement,
+    BaseAttribute,
+    RefObj,
+    RefType,
+} from "../base/index.js";
 import { reconcile } from "../base/reconcile.js";
 import { classListNodeType } from "../base/index.js";
-import { invokeEvent } from "./event.js";
-import { DomComponent } from "./virtual.js";
+import { invokeEvent } from "../plugins/event.js";
+import { DomComponent } from "./legacy/_virtual.js";
 import reuseNodes from "../base/reuseNodes.js";
-const defaultUpdate = (node, current, key) => {
+import { valueOf, toString, Transform } from "../util.js";
+const defaultUpdate = <T, NodeLike extends Node>(
+    node: BaseAttribute<NodeLike, T>,
+    current: Transform<T, "toString">,
+    key: string
+) => {
     switch (node.nodeType) {
         // case Node.ELEMENT_NODE:
         //     node.setAttribute(key, current);
         //     break;
         case Node.TEXT_NODE:
         case Node.ATTRIBUTE_NODE:
-            node.nodeValue = current;
+            node.nodeValue = toString(current);
             break;
         case classListNodeType:
             node.update(current);
@@ -26,18 +36,25 @@ const defaultUpdate = (node, current, key) => {
             throw new LayoutGenError("unaccepted data");
     }
 };
-const noOpCond = (current, before) => true;
-const valueOf = (value) =>
-    typeof value === "object" ? value.valueOf() : value;
-const updater = (old, view, isUpdate = noOpCond, onUpdate = defaultUpdate) => {
+const noOpCond = <T>(current: T, before: T) => true;
+const updater = <
+    T,
+    ElementType extends BaseLiteralElement<T> = BaseLiteralElement<T>
+>(
+    old: RefType<T>,
+    view: ElementType,
+    isUpdate = noOpCond,
+    onUpdate = defaultUpdate
+) => {
     //needs bound self
-    return function __nestedUpdate__(item) {
-        const collector = view.collect(this);
-        for (const key in collector) {
+    return function __nestedUpdate__(this: ElementType, item: RefType<T>) {
+        const collectors = view.collect();
+        for (const key in collectors) {
+            const collector = collectors[key] as any;
             const current = valueOf(item[key]);
             const before = valueOf(old[key]);
             if (current !== before && isUpdate(current, before)) {
-                onUpdate(collector[key], current, key);
+                onUpdate(collector, current, key);
                 old[key] = current;
             }
         }

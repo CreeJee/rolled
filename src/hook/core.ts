@@ -1,5 +1,19 @@
-export const hooksMiddleWare = [];
-const __Context_Getter = (target, prop) => {
+import { toString, valueOf, Transform } from "../util";
+type ContextValue<T> = T & Transform<T, "toString"> & Transform<T, "valueOf">;
+type Dispatcher<T> = (value: T) => void;
+type Getter<T> = () => T;
+
+interface IContext<T, Value extends ContextValue<T> = ContextValue<T>> {
+    value: Value;
+    nth: number;
+
+    toString(): string;
+    valueOf(): T;
+    [Symbol.toPrimitive](): T;
+}
+
+const hooksMiddleWare = [];
+const __Context_Getter = <T>(target: IContext<T>, prop: string) => {
     const pureValue = target.value;
     return Reflect.get(
         prop in target
@@ -10,58 +24,56 @@ const __Context_Getter = (target, prop) => {
         prop
     );
 };
-const __Context_Apply = (target, thisArg, argumentsList) =>
-    Reflect.apply(target, thisArg, argumentsList);
-export class Context {
-    constructor(value, nth) {
+export class Context<T> implements IContext<T> {
+    value: ContextValue<T>;
+    nth: number;
+    constructor(value: ContextValue<T>, nth: number) {
         this.value = value;
         this.nth = nth;
         return new Proxy(this, {
             get: __Context_Getter,
-            apply: __Context_Apply,
         });
     }
     toString() {
-        return this.value.toString();
+        return toString(this.value);
     }
     valueOf() {
-        return this.value;
+        return valueOf(this.value);
     }
     [Symbol.toPrimitive]() {
-        return this.value;
+        return valueOf(this.value);
     }
-    static convert(value, nth) {
+    static convert<T>(value: ContextValue<T>, nth = 0) {
         return new Context(value, nth);
     }
 }
-export class StateObject {
-    constructor(getter, dispatcher) {
-        Object.defineProperties(this, {
-            0: {
-                get: getter,
-            },
-            1: {
-                get: () => dispatcher,
-            },
-            length: {
-                value: 2,
-            },
-        });
+export class StateObject<T> {
+    #contextGetter: Getter<Context<T>>;
+    #contextDispatcher: Dispatcher<T>;
+    get [0]() {
+        return this.#contextGetter();
+    }
+    get [1]() {
+        return this.#contextDispatcher;
+    }
+    constructor(getter: Getter<Context<T>>, dispatcher: Dispatcher<T>) {
+        this.#contextGetter = getter;
+        this.#contextDispatcher = dispatcher;
     }
     *[Symbol.iterator]() {
         yield this[0];
         yield this[1];
     }
 }
-export class VirtualBaseComponent {
+export class VirtualBaseComponent<PropTypes> {
     //impl
-    onUpdate(_data) {
+    onUpdate(_data: PropTypes) {
         throw new LayoutGenError("need [VirtualLayout.update]");
     }
     onRemove() {
         throw new LayoutGenError("need [VirtualLayout.remove]");
     }
-    isUpdate(current, before) {
+    isUpdate(current: PropTypes, before: PropTypes) {
         return true;
     }
     // mock prototype extends chain
@@ -75,14 +87,13 @@ export class VirtualBaseComponent {
 
 // Errors
 export class LayoutGenError extends Error {
-    constructor(msg) {
+    constructor(msg: string) {
         super(msg);
     }
 }
-
 export class HookError extends Error {
-    constructor(...args) {
-        super(...args);
+    constructor(msg: string) {
+        super(msg);
     }
 }
 //hook

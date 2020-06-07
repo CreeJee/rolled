@@ -1,15 +1,25 @@
+type Task = (...args: any[]) => void;
+type TaskInfo = {
+    task: Task;
+    param: any[];
+};
+type createTimer = (fn: Task) => number;
+type deleteTimer = (timerId: number) => void;
 class Timer {
+    timer: number;
+    #create: createTimer;
+    #delete: deleteTimer;
     // @ts-ignore
-    constructor(addTimer, removeTimer) {
+    constructor(createTimer: createTimer, deleteTimer: deleteTimer) {
         this.timer = -1;
-        this.addTimer = addTimer;
-        this.removeTimer = removeTimer;
+        this.#create = createTimer;
+        this.#delete = deleteTimer;
     }
-    boundTask(task) {
+    boundTask(task: Task) {
         if (this.timer >= 0) {
-            this.removeTimer(this.timer);
+            this.#delete(this.timer);
         }
-        this.timer = this.addTimer(task);
+        this.timer = this.#create(task);
     }
 }
 class AnimationTimer extends Timer {
@@ -37,16 +47,15 @@ class IdleTimer extends Timer {
     }
 }
 class TaskQueue {
-    constructor(timer) {
+    tasks: TaskInfo[];
+    timer: any;
+    boundExec: () => void;
+    constructor(timer: Timer) {
         this.tasks = [];
         this.timer = timer;
         this.boundExec = this.exec.bind(this);
     }
-    add(task, ...param) {
-        if (typeof task !== "function") {
-            //@TODO: taskQueue must contains Own Error
-            throw new Error("[TaskQueue] Task is must Function");
-        }
+    add(task: TaskInfo["task"], ...param: TaskInfo["param"]) {
         this.tasks.push({ task, param });
         this.timer.boundTask(this.boundExec);
     }

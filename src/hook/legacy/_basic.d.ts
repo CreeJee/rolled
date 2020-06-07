@@ -1,5 +1,5 @@
-import { BaseLiteralElement, RefObj } from "../base/index";
-import { HOOK_SYMBOL } from "./Symbol";
+import { BaseLiteralElement, RefObj } from "../../base/index";
+import { HOOK_SYMBOL } from "./_Symbol";
 
 type Dispatcher<T> = (p: T) => void;
 export type StateObject<T, Data = T> = [Context<T>, Dispatcher<Data>];

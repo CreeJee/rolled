@@ -4,7 +4,7 @@ import {
     hookedType,
     HookContext,
     VirtualBaseComponent,
-} from "./basic";
+} from "./_basic";
 export class VirtualComponent<PropTypes, BaseType> extends VirtualBaseComponent<
     PropTypes
 > {

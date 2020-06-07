@@ -21,8 +21,8 @@ import {
     SYSTEM_EVENT_NAME,
     __createEvent,
     __getEvent,
-} from "./event.js";
-import { __createStore } from "./store.js";
+} from "../plugins/event.js";
+import { __createStore } from "../plugins/store.js";
 import reconcile from "../base/reconcile.js";
 import reuseNodes from "../base/reuseNodes.js";
 export class LazyComponent {
@@ -49,7 +49,7 @@ export class LazyComponent {
 }
 //d.ts 잠제적 migrate
 export * from "./core.js";
-export * from "./event.js";
+export * from "../plugins/event.js";
 const noop = () => {};
 let __stateTask = getIdleQueue(); //timer queue or state queue
 try {

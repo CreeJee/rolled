@@ -4,7 +4,7 @@ class Ref {
         this.ref = ref;
     }
 }
-export const classListNodeType = "classList";
+export const classListNodeType = "777";
 const attributeClassTable = {
     update(value) {
         const current = this.classList.item(this.nth);
