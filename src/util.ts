@@ -36,3 +36,8 @@ export function valueOf(o: undefined): undefined;
 export function valueOf(o: any): any {
     return o === null ? null : o === undefined ? undefined : o.valueOf();
 }
+
+export type Maybe<T> = T | null;
+export type Alies<T> = {
+    [K in keyof T]: T[K]
+}

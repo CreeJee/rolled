@@ -1,19 +1,27 @@
 import { StateObject } from "./core";
+import {Maybe, Alies} from "../util"
+//Logic
+interface ComponentStruct<Props,Parent,Children>{
+    props: Props,
+    parent: Parent,
+    children: Children,
+}
 export interface IBaseComponent {
     isMemo: boolean;
     isMounted: boolean;
 }
-export type MaybeBaseComponent<T = IBaseComponent> = T | null;
+export type MaybeBaseComponent<C extends IBaseComponent = IBaseComponent> = Maybe<C>;
 export interface IComponent<
     Props,
-    ParentComponent extends MaybeBaseComponent,
-    ChildComponents extends IBaseComponent[]
-> extends IBaseComponent {
-    props: Partial<Props>;
-    parent: ParentComponent;
-    children: ChildComponents;
-}
-
+    ParentComponent extends MaybeBaseComponent = MaybeBaseComponent,
+    ChildComponents extends IBaseComponent[] = IBaseComponent[]
+> extends IBaseComponent,ComponentStruct<Partial<Props>,ParentComponent,ChildComponents> {}
+export type InferComponent<T> = (
+    T extends IComponent<infer Props,infer Parent, infer Children> ?
+        ComponentStruct<Props,Parent,Children> :
+        IComponent<any>
+);
+export type ComponentPlugin<Extra, T> = InferComponent<T> & Alies<Extra>;
 export class BaseComponent<
     Props,
     ParentComponent extends MaybeBaseComponent,

@@ -12,7 +12,6 @@ interface IContext<T, Value extends ContextValue<T> = ContextValue<T>> {
     [Symbol.toPrimitive](): T;
 }
 
-const hooksMiddleWare = [];
 const __Context_Getter = <T>(target: IContext<T>, prop: string) => {
     const pureValue = target.value;
     return Reflect.get(
@@ -97,7 +96,9 @@ export class HookError extends Error {
     }
 }
 //hook
-export const hookSymbol = Symbol("@@Hook");
+//필요없어보이는데 지우는것도 고려해봐야지
+const hooksMiddleWare = [];
+const hookSymbol = Symbol("@@Hook");
 export function hasHook(component) {
     return hookSymbol in component;
 }

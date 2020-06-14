@@ -14,32 +14,25 @@ import {
     BaseComponent,
     MaybeBaseComponent,
     IBaseComponent,
+    InferComponent,
 } from "../hook/component";
 interface IStore<T> extends Map<keyof T, any> {}
 type StoreAddons<StoreType, Extra> = { $store: IStore<StoreType> } & Extra;
 type BaseStoreComponent<StoreType> = StoreAddons<StoreType, IBaseComponent>;
 type StoredComponent<
     StoreType,
-    Props,
-    ParentComponent extends MaybeBaseComponent,
-    ChildComponents extends IBaseComponent[]
+    Component
 > = StoreAddons<
     StoreType,
-    BaseComponent<Props, ParentComponent, ChildComponents>
+    InferComponent<Component>
 >;
 export function fromStore<
     StoreType,
-    Props,
-    ParentComponent extends MaybeBaseComponent<
-        StoreAddons<StoreType, IBaseComponent>
-    >,
-    ChildComponents extends IBaseComponent[]
+    Component extends IBaseComponent
 >(
     component: StoredComponent<
         StoreType,
-        Props,
-        ParentComponent,
-        ChildComponents
+        Component
     >,
     findKey: keyof StoreType,
     defaultValue: StoreType
