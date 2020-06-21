@@ -1,4 +1,5 @@
 import { toString, valueOf, Transform } from "../util";
+import { InferComponent } from "./component";
 type ContextValue<T> = T & Transform<T, "toString"> & Transform<T, "valueOf">;
 type Dispatcher<T> = (value: T) => void;
 type Getter<T> = () => T;
@@ -96,45 +97,44 @@ export class HookError extends Error {
     }
 }
 //hook
-//필요없어보이는데 지우는것도 고려해봐야지
-const hooksMiddleWare = [];
-const hookSymbol = Symbol("@@Hook");
-export function hasHook(component) {
-    return hookSymbol in component;
-}
-export function getHook(component) {
-    return component[hookSymbol];
-}
-export function setHook(component, hook) {
-    hook.$self = component;
-    return (component[hookSymbol] = hook);
-}
-export function removeHook(component) {
-    let hook = component[hookSymbol];
-    delete hook.$self;
-    delete component[hookSymbol];
-    hook = null;
-}
-export function useGlobalHook(hook) {
-    if (typeof hook !== "function") {
-        throw new HookError("custom hook middleware is must function");
-    }
-    hooksMiddleWare.push(hook);
-}
-export function bindGlobalHook(hook) {
-    return hooksMiddleWare.reduce((accr, handler) => {
-        const initResult = handler(hook) || {};
-        const handlers = Object.values(initResult);
-        if (
-            typeof initResult === "object" &&
-            handlers.every((v) => typeof v === "function")
-        ) {
-            Object.assign(accr, initResult);
-        } else {
-            throw new HookError(
-                "custom hook middleware result is must object & each element is must function"
-            );
-        }
-        return accr;
-    }, {});
-}
+// const hooksMiddleWare = [];
+// const hookSymbol = Symbol("@@Hook");
+// export function hasHook<T>(component: InferComponent<T>) {
+//     return hookSymbol in component;
+// }
+// export function getHook(component) {
+//     return component[hookSymbol];
+// }
+// export function setHook(component, hook) {
+//     hook.$self = component;
+//     return (component[hookSymbol] = hook);
+// }
+// export function removeHook(component) {
+//     let hook = component[hookSymbol];
+//     delete hook.$self;
+//     delete component[hookSymbol];
+//     hook = null;
+// }
+// export function useGlobalHook(hook) {
+//     if (typeof hook !== "function") {
+//         throw new HookError("custom hook middleware is must function");
+//     }
+//     hooksMiddleWare.push(hook);
+// }
+// export function bindGlobalHook(hook) {
+//     return hooksMiddleWare.reduce((accr, handler) => {
+//         const initResult = handler(hook) || {};
+//         const handlers = Object.values(initResult);
+//         if (
+//             typeof initResult === "object" &&
+//             handlers.every((v) => typeof v === "function")
+//         ) {
+//             Object.assign(accr, initResult);
+//         } else {
+//             throw new HookError(
+//                 "custom hook middleware result is must object & each element is must function"
+//             );
+//         }
+//         return accr;
+//     }, {});
+// }
