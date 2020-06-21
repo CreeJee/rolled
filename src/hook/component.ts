@@ -1,16 +1,17 @@
 import { StateObject } from "./core";
-import {Maybe, Alies} from "../util"
+import {Maybe, Alies, Except} from "../util"
 //Logic
-interface ComponentStruct<Props,Parent,Children>{
-    props: Props,
-    parent: Parent,
-    children: Children,
-}
 export interface IBaseComponent {
     isMemo: boolean;
     isMounted: boolean;
 }
+interface ComponentStruct<Props,Parent,Children> extends IBaseComponent{
+    props: Props,
+    parent: Parent,
+    children: Children,
+}
 export type MaybeBaseComponent<C extends IBaseComponent = IBaseComponent> = Maybe<C>;
+
 export interface IComponent<
     Props,
     ParentComponent extends MaybeBaseComponent = MaybeBaseComponent,
@@ -18,10 +19,11 @@ export interface IComponent<
 > extends IBaseComponent,ComponentStruct<Partial<Props>,ParentComponent,ChildComponents> {}
 export type InferComponent<T> = (
     T extends IComponent<infer Props,infer Parent, infer Children> ?
-        ComponentStruct<Props,Parent,Children> :
-        IComponent<any>
+        T :
+        never
 );
-export type ComponentPlugin<Extra, T> = InferComponent<T> & Alies<Extra>;
+export type ComponentPlugin<Extra, T> = Except<Extra,never,InferComponent<T> & Alies<Extra>>;
+export type HookMixer<T, Resolver> = (component: T) => Alies<Resolver>;
 export class BaseComponent<
     Props,
     ParentComponent extends MaybeBaseComponent,
@@ -32,7 +34,9 @@ export class BaseComponent<
     #$children = [];
     #$self = null;
     #$slot = null;
-
+    //plugins
+    #plugins = [];
+    
     props = {};
     parent: ParentComponent;
     isMemo = false;
@@ -54,6 +58,18 @@ export class BaseComponent<
         ...children: ChildComponents
     ) {
         return new this(props, null, ...children);
+    }
+    // create mixin action
+    // and call mixins
+    // it will be shallow clone (s)
+
+    //TODO: infer 에 대한 적극적인 처리 필요
+    static use<
+        Component,
+        Hooks,
+        Mix extends HookMixer<InferComponent<Component>, Hooks>
+    >(component: InferComponent<Component>, hookResolve: Mix): Hooks {
+        return hookResolve(component);
     }
 }
 export class Component<

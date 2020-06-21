@@ -15,7 +15,7 @@ function resolvePrototypeTree(obj) {
  * @param {import("./basic.js").HookContext<T>} parentContext
  * @param {import("./basic.js").HookContext<V>} targetContext
  */
-const expectParent = (parentContext, target, nodeName) => {
+const exceptParent = (parentContext, target, nodeName) => {
     if (!parentContext.$children.includes(target)) {
         throw new LayoutGenError(`${nodeName} is not contains parent`);
     }
@@ -31,7 +31,7 @@ export class VirtualComponent extends VirtualBaseComponent {
     insertBefore(node, afterNode) {
         const context = getHook(this);
         const $child = parentContext.$children;
-        expectParent(context, afterNode, "afterNode");
+        exceptParent(context, afterNode, "afterNode");
         $child.splice($child.indexOf(afterNode), 0, node);
     }
     appendChild(node) {
@@ -42,7 +42,7 @@ export class VirtualComponent extends VirtualBaseComponent {
     removeChild(node) {
         const parentContext = getHook(this);
         const $child = parentContext.$children;
-        expectParent(parentContext, node, "node");
+        exceptParent(parentContext, node, "node");
         $child.splice($child.indexOf(node), 1);
         node.onRemove();
         return node;

@@ -16,7 +16,8 @@ import {
     IBaseComponent,
     InferComponent,
 } from "../hook/component";
-interface IStore<T> extends Map<keyof T, any> {}
+import { IStore } from "../util";
+//but is it really 
 type StoreAddons<StoreType, Extra> = { $store: IStore<StoreType> } & Extra;
 type BaseStoreComponent<StoreType> = StoreAddons<StoreType, IBaseComponent>;
 type StoredComponent<
@@ -26,6 +27,8 @@ type StoredComponent<
     StoreType,
     InferComponent<Component>
 >;
+
+// recursive type checking use infer
 export function fromStore<
     StoreType,
     Component extends IBaseComponent
@@ -34,14 +37,14 @@ export function fromStore<
         StoreType,
         Component
     >,
-    findKey: keyof StoreType,
+    findKey: string,
     defaultValue: StoreType
 ) {
     let self: BaseStoreComponent<StoreType> = component;
     let item = defaultValue;
     do {
         const $store = self.$store;
-        if ($store.has(findKey)) {
+        if ($store.get(findKey)) {
             item = $store.get(findKey);
             break;
         }
@@ -50,15 +53,3 @@ export function fromStore<
     );
     return item;
 }
-//TODO: Store을 언어기능단위의 무언가로 바꾸자....
-// 에바다...
-
-// export function setStore(context, key, value) {
-//     const $store = __getStore(context);
-//     if ($store.has(key)) {
-//         //dev log
-//         console.warn(`${key} is already exist from $store`);
-//     }
-//     $store.set(key, value);
-//     return value;
-// }

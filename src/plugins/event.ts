@@ -1,5 +1,30 @@
-import { Context } from "../hook/core";
-declare module "./components" {}
+import { ComponentPlugin, IBaseComponent, InferComponent, Component} from "../hook/component";
+import { IStore } from "../util";
+type SYSTEM_EVENT = "$mount" | "$unMount";
+type CONSTANT_EVENT = "mount" | "unMount";
+
+type EventHandler<T> = (self: T) => void;
+
+type AbstractStore<T,K extends string = string> = {
+    [k in K]: EventHandler<T>[]
+}
+type BaseStore<T> = AbstractStore<T,(SYSTEM_EVENT | CONSTANT_EVENT)>;
+type EventPipedMap<Extra,Component> = {
+    events: IStore<
+        (
+            Extra extends string ?
+                AbstractStore<Component,Extra>:
+                BaseStore<Component>
+        ) &
+        BaseStore<Component>
+    >
+};
+type EventComponent<
+    Extra,
+    Component = IBaseComponent
+> = ComponentPlugin<EventPipedMap<Extra,Component>,Component>;
+
+
 const lifeCycleSymbol = "$";
 function __generateLifeCycleName(name: string) {
     return lifeCycleSymbol + name;
@@ -21,78 +46,46 @@ export const SYSTEM_EVENT_NAME = {
     $mount: __generateLifeCycleName("mount"),
     $unMount: __generateLifeCycleName("unMount"),
 };
-// export function expectEvent<T>(context: Context<T>, eventName) {
-//     if (
-//         context &&
-//         typeof context === "object" &&
-//         context !== null &&
-//         (eventName in EVENT_NAME || eventName in SYSTEM_EVENT_NAME)
-//     ) {
-//         return;
-//     }
-//     throw new EventError(`${eventName.toString()} is not supported Event`);
-// }
-export function invokeEvent(hookContext, eventName, { nth = null } = {}) {
+//nth component infer
+export function invokeEvent<
+    Component,
+    EventName extends string
+>(
+    hookContext: EventComponent<EventName,Component>, 
+    eventName: EventName, { nth = -1 } = {}
+) {
+    const a = hookContext;
     const events = hookContext.events;
     const item = events.get(eventName);
-    if (typeof item === "function") {
-        return item(hookContext);
-    }
-    if (Array.isArray(item)) {
-        if (Number.isInteger(nth) && nth < item.length) {
-            item[nth](hookContext);
-        } else {
-            for (let index = 0; index < item.length; index++) {
-                item[index](hookContext);
-            }
+    
+    if (Number.isInteger(nth) && nth < -1 && nth < item.length) {
+        item[nth](hookContext);
+        const o = item[nth];
+    } else {
+        for (let index = 0; index < item.length; index++) {
+            item[index](hookContext);
         }
     }
     if (!__isLifeCycleEvent(eventName)) {
         const lifeCycleEvent = __generateLifeCycleName(eventName);
-        expectEvent(hookContext, lifeCycleEvent);
-        invokeEvent(hookContext, lifeCycleEvent);
+        invokeEvent<Component,typeof lifeCycleEvent>(hookContext, lifeCycleEvent);
     }
 }
-export function boundEvent(context, eventName, value) {
-    // if (__isLifeCycleEvent(eventName)) {
-    //    throw new EventError(`LifeCycle event is must not binding`)
-    // }
-    const events = context.events;
-    const item = events.get(eventName);
-    if (Array.isArray(item)) {
-        //TODO: use scheduler task
-        if (typeof value === "function") {
-            item.push(value);
-        } else {
-            throw new EventError(`event is must function!!!`);
-        }
-    } else {
-        events.set(eventName, value);
+export function boundEvent<
+    Component,
+    EventName extends string
+>(
+    context: EventComponent<EventName,Component>,
+    eventName: EventName, value:EventHandler<Component>
+) {
+    if (__isLifeCycleEvent(eventName)) {
+       throw new EventError(`LifeCycle event is must not binding`)
     }
+    context.events.get(eventName).push(value);
 }
-export function clearEvent(context, eventName) {
-    const events = context.events;
-    const item = events.get(eventName);
-    if (Array.isArray(item)) {
-        item.splice(0);
-    } else if (typeof item === "function") {
-        events.set(eventName, () => {});
-    }
-}
-export function __createEvent() {
-    return {
-        events: new Map([
-            [EVENT_NAME.mount, []],
-            [EVENT_NAME.unMount, []],
-            [SYSTEM_EVENT_NAME.$mount, []],
-            [SYSTEM_EVENT_NAME.$unMount, []],
-            [EVENT_NAME.watch, []],
-        ]),
-    };
-}
-export function __getEvent(obj) {
-    if (!("events" in obj)) {
-        throw new Error("this object is not binding events");
-    }
-    return obj.events;
+export function clearEvent<
+    Component,
+    EventName extends string
+>(context:EventComponent<EventName,Component>, eventName:EventName) {
+    context.events.get(eventName).splice(0);
 }

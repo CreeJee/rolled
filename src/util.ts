@@ -1,7 +1,7 @@
 type ToString<T> = (this: T) => string;
 type ToValueOf<T> = (this: T) => T;
 
-type TransformAble<T> = {
+export type TransformAble<T> = {
     toString: {
         toString: ToString<T>;
     };
@@ -40,4 +40,9 @@ export function valueOf(o: any): any {
 export type Maybe<T> = T | null;
 export type Alies<T> = {
     [K in keyof T]: T[K]
+}
+export type Except<T,Except,Fallback> = T extends Except? T : Fallback;
+export interface IStore<T>{
+    get<K extends keyof T>(k: K): T[K]
+    set<K extends keyof T>(k: K,v:T[K]): T[K];
 }
