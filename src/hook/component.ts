@@ -6,11 +6,8 @@ export interface IBaseComponent {
     isMounted: boolean;
 }
 
-interface ComponentStruct<
-    Props,
-    Parent extends MaybeBaseComponent,
-    Children extends IBaseComponent[]
-> extends IBaseComponent {
+interface ComponentStruct<Props, Parent extends MaybeBaseComponent, Children>
+    extends IBaseComponent {
     props: Props;
     parent: Parent;
     children: Children;
@@ -19,13 +16,14 @@ export type MaybeBaseComponent<
     C extends IBaseComponent = IBaseComponent
 > = Maybe<C>;
 
-export type InferComponent<T> = T extends ComponentStruct<
+export type InferComponent<T, Q = never> = T extends ComponentStruct<
     infer Props,
     infer Parent,
     infer Children
 >
     ? T
-    : never;
+    : Q;
+type InferParent<Parent> = InferComponent<Parent, null>;
 export interface IComponent<
     Props,
     ParentComponent,
@@ -34,7 +32,7 @@ export interface IComponent<
     extends IBaseComponent,
         ComponentStruct<
             Partial<Props>,
-            InferComponent<ParentComponent>,
+            InferParent<ParentComponent>,
             ChildComponents
         > {}
 
@@ -46,7 +44,7 @@ export type ComponentPlugin<Extra, T> = Except<
 export type HookMixer<T, Resolver> = (component: T) => Alies<Resolver>;
 export class BaseComponent<
     Props,
-    ParentComponent extends MaybeBaseComponent,
+    ParentComponent,
     ChildComponents extends IBaseComponent[]
 > implements IComponent<Props, ParentComponent, ChildComponents> {
     #state: StateObject<any>[] = [];
@@ -58,7 +56,7 @@ export class BaseComponent<
     #plugins = [];
 
     props = {};
-    parent: ParentComponent;
+    parent: InferParent<ParentComponent>;
     isMemo = false;
     isMounted = false;
     children: ChildComponents;
@@ -66,7 +64,7 @@ export class BaseComponent<
     // ...eventData,
     constructor(
         props: Props,
-        parent: ParentComponent,
+        parent: InferParent<ParentComponent>,
         ...children: ChildComponents
     ) {
         this.children = children;
@@ -94,6 +92,6 @@ export class BaseComponent<
 }
 export class Component<
     Props,
-    ParentComponent extends MaybeBaseComponent,
+    ParentComponent,
     ChildComponents extends IBaseComponent[]
 > extends BaseComponent<Props, ParentComponent, ChildComponents> {}
