@@ -1,28 +1,48 @@
 import { StateObject } from "./core";
-import {Maybe, Alies, Except} from "../util"
+import { Maybe, Alies, Except } from "../util";
 //Logic
 export interface IBaseComponent {
     isMemo: boolean;
     isMounted: boolean;
 }
-interface ComponentStruct<Props,Parent,Children> extends IBaseComponent{
-    props: Props,
-    parent: Parent,
-    children: Children,
-}
-export type MaybeBaseComponent<C extends IBaseComponent = IBaseComponent> = Maybe<C>;
 
+interface ComponentStruct<
+    Props,
+    Parent extends MaybeBaseComponent,
+    Children extends IBaseComponent[]
+> extends IBaseComponent {
+    props: Props;
+    parent: Parent;
+    children: Children;
+}
+export type MaybeBaseComponent<
+    C extends IBaseComponent = IBaseComponent
+> = Maybe<C>;
+
+export type InferComponent<T> = T extends ComponentStruct<
+    infer Props,
+    infer Parent,
+    infer Children
+>
+    ? T
+    : never;
 export interface IComponent<
     Props,
-    ParentComponent extends MaybeBaseComponent = MaybeBaseComponent,
-    ChildComponents extends IBaseComponent[] = IBaseComponent[]
-> extends IBaseComponent,ComponentStruct<Partial<Props>,ParentComponent,ChildComponents> {}
-export type InferComponent<T> = (
-    T extends IComponent<infer Props,infer Parent, infer Children> ?
-        T :
-        never
-);
-export type ComponentPlugin<Extra, T> = Except<Extra,never,InferComponent<T> & Alies<Extra>>;
+    ParentComponent,
+    ChildComponents extends IBaseComponent[]
+>
+    extends IBaseComponent,
+        ComponentStruct<
+            Partial<Props>,
+            InferComponent<ParentComponent>,
+            ChildComponents
+        > {}
+
+export type ComponentPlugin<Extra, T> = Except<
+    Extra,
+    never,
+    InferComponent<T> & Alies<Extra>
+>;
 export type HookMixer<T, Resolver> = (component: T) => Alies<Resolver>;
 export class BaseComponent<
     Props,
@@ -36,7 +56,7 @@ export class BaseComponent<
     #$slot = null;
     //plugins
     #plugins = [];
-    
+
     props = {};
     parent: ParentComponent;
     isMemo = false;

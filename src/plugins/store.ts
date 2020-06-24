@@ -1,55 +1,66 @@
-// export function __createStore() {
-//     return {
-//         $store: new Map(),
-//     };
-// }
-// export function __getStore(obj) {
-//     if (!("$store" in obj)) {
-//         throw new Error("this object is not binding $store");
-//     }
-//     return obj.$store;
-// }
-
 import {
     BaseComponent,
     MaybeBaseComponent,
     IBaseComponent,
     InferComponent,
+    Component,
+    ComponentPlugin,
 } from "../hook/component";
-import { IStore } from "../util";
-//but is it really 
-type StoreAddons<StoreType, Extra> = { $store: IStore<StoreType> } & Extra;
-type BaseStoreComponent<StoreType> = StoreAddons<StoreType, IBaseComponent>;
-type StoredComponent<
-    StoreType,
+import { IStore, Maybe } from "../util";
+//but is it really
+type StoreAddons<StoreType> = { $store: IStore<StoreType> };
+type StoreComponent<StoreType, Component> = ComponentPlugin<
+    StoreAddons<StoreType>,
     Component
-> = StoreAddons<
-    StoreType,
-    InferComponent<Component>
 >;
+// type PropSearch<
+//     Component,
+//     PropName,
+//     StoreType
+// > = PropName extends keyof InferComponent<Component>["props"]
+//     ? InferComponent<Component>["props"][PropName] extends StoreType
+//         ? StoreType
+//         : never
+//     : never;
+// type RecursiveTypeSearch<Component, PropName, StoreType> = {
+//     0: Component;
+//     1: InferComponent<Component>["parent"] extends null
+//         ? never
+//         : RecursiveTypeSearch<
+//               InferComponent<Component>["parent"],
+//               PropName,
+//               StoreType
+//           >;
+// }[PropSearch<Component, PropName, StoreType> extends never ? 1 : 0];
 
 // recursive type checking use infer
-export function fromStore<
-    StoreType,
-    Component extends IBaseComponent
->(
-    component: StoredComponent<
-        StoreType,
-        Component
-    >,
-    findKey: string,
-    defaultValue: StoreType
-) {
-    let self: BaseStoreComponent<StoreType> = component;
-    let item = defaultValue;
-    do {
-        const $store = self.$store;
-        if ($store.get(findKey)) {
-            item = $store.get(findKey);
-            break;
-        }
-    } while (
-        (self = component.parent as BaseStoreComponent<StoreType>) !== null
-    );
-    return item;
+export function fromStore<StoreType, Component, Key extends keyof StoreType>(
+    hookContext: Maybe<StoreComponent<StoreType, Component>>,
+    findKey: Key,
+    defaultValue: StoreType[Key]
+): StoreType[Key] {
+    if (hookContext !== null) {
+        const $store = hookContext.$store;
+        const val = $store.get(findKey);
+        return val
+            ? val
+            : fromStore<
+                  StoreType,
+                  InferComponent<Component>["parent"] extends null
+                      ? null
+                      : StoreComponent<
+                            StoreType,
+                            InferComponent<Component>["parent"]
+                        >,
+                  Key
+              >(
+                  hookContext.parent as StoreComponent<
+                      StoreType,
+                      typeof hookContext.parent
+                  >,
+                  findKey,
+                  defaultValue
+              );
+    }
+    return defaultValue;
 }
