@@ -71,18 +71,52 @@ export class BaseComponent<
         this.props = props;
         this.parent = parent;
     }
-    static createRoot<Props, ChildComponents extends IBaseComponent[]>(
+    static createPureComponent<Props,ParentComponent, ChildComponents extends IBaseComponent[]>(
         props: Props,
+        parent: InferParent<ParentComponent>,
         ...children: ChildComponents
     ) {
-        return new this(props, null, ...children);
+        return new this(props, parent, ...children);
+    }
+}
+export class Component<
+    Props,
+    ParentComponent,
+    ChildComponents extends IBaseComponent[]
+> extends BaseComponent<Props, ParentComponent, ChildComponents> {
+    private static mixins = [] as HookMixer<any,any>[];
+
+    private static applyComponent<Static,Types extends HookMixer<any,any>[]>(
+        component: InferComponent<Static>,
+        ...types: Types
+    ){
+        return types.reduce(
+            (component,resolve) => this.bound(component,resolve),
+            component
+        )
+    }
+    static createComponent<
+        Props,
+        ParentComponent,
+        ChildComponents extends IBaseComponent[],
+        Types extends HookMixer<any,any>[]
+    >(
+        props: Props,
+        parent: InferParent<ParentComponent>,
+        children: ChildComponents,
+        ...types: Types
+    ){
+        return types.reduce(
+            (component,resolve) => this.bound(component,resolve),
+            BaseComponent.createPureComponent(props,parent,...children)
+        );
     }
     // create mixin action
     // and call mixins
     // it will be shallow clone (s)
 
     //TODO: infer 에 대한 적극적인 처리 필요
-    static use<
+    static bound<
         Component,
         Hooks,
         Mix extends HookMixer<InferComponent<Component>, Hooks>
@@ -90,8 +124,3 @@ export class BaseComponent<
         return hookResolve(component);
     }
 }
-export class Component<
-    Props,
-    ParentComponent,
-    ChildComponents extends IBaseComponent[]
-> extends BaseComponent<Props, ParentComponent, ChildComponents> {}
