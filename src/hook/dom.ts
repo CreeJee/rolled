@@ -1,7 +1,4 @@
-import {
-    LayoutGenError,
-    VirtualBaseComponent,
-} from "./core.js";
+import { LayoutGenError, VirtualBaseComponent } from "./core.js";
 import {
     BaseLiteralElement,
     BaseAttribute,
@@ -15,39 +12,38 @@ import { DomComponent } from "./legacy/_virtual.js";
 import reuseNodes from "../base/reuseNodes.js";
 import { valueOf, toString, Transform } from "../util.js";
 
-type UpdaterType<Data,NodeLike extends Node> = NodeLike & {
-    update: (old: RefType<Data>, view : BaseLiteralElement<NodeLike>) => void | undefined
+type UpdaterType<Data, NodeLike extends Node> = BaseLiteralElement<
+    Data,
+    NodeLike
+> & {
+    update: (this: NodeLike, item: RefType<Data>) => void | undefined;
 };
 
-const defaultUpdate = <T, NodeLike extends Node>(
+const nodeDefaultUpdate = <T, NodeLike extends Node>(
     node: BaseAttribute<NodeLike, T>,
     current: Transform<T, "toString">,
     k: keyof T
 ) => {
     switch (node.nodeType) {
-        // case Node.ELEMENT_NODE:
-        //     node.setAttribute(key, current);
-        //     break;
-        case Node.TEXT_NODE: 
+        case Node.TEXT_NODE:
         case Node.ATTRIBUTE_NODE:
             node.nodeValue = toString(current);
-            break;
-        case classListNodeType:
-            node.update(current);
             break;
         default:
             throw new LayoutGenError("unaccepted data");
     }
 };
+const virtualDefaultUpdate = <T, NodeLike extends typeof VirtualBaseComponent>(
+    node: BaseAttribute<NodeLike, T>,
+    current: Transform<T, "toString">,
+    k: keyof T
+) => node.update(current);
 const noOpCond = <T>(current: T, old: T) => true;
-const updater = <
-    T,
-    ElementType extends BaseLiteralElement<T> = BaseLiteralElement<T>
->(
+const updater = <T, ElementType extends Node>(
     old: RefType<T>,
-    view: ElementType,
+    view: BaseLiteralElement<T, Node>,
     isUpdate = noOpCond,
-    onUpdate = defaultUpdate
+    onUpdate: typeof nodeDefaultUpdate
 ) => {
     //needs bound self
     return function __nestedUpdate__(this: ElementType, item: RefType<T>) {
@@ -63,37 +59,40 @@ const updater = <
         }
     };
 };
-const __toUpdatable = <NodeLike extends Node,Data>(data:Data,node: UpdaterType<Data,NodeL>) => {
-    const uNode = node as UpdaterType<Data,typeof node>;
-    uNode.update = updater<Data>(data as RefType<Data>,node);
-    return uNode
-}
-export function __bindFragment({...item}, itemGroup:DocumentFragment) {
-    let rootChild = itemGroup.firstChild;
+const __toUpdatable = <NodeLike extends Node, Data>(
+    data: Data,
+    node: UpdaterType<Data, NodeLike>,
+    isUpdate = noOpCond,
+    onUpdate = nodeDefaultUpdate
+) => {
+    node.update = updater(data as RefType<Data>, node, isUpdate, onUpdate);
+    return node;
+};
+export function __bindFragment({ ...item }, fragment: DocumentFragment) {
+    let rootChild = fragment.firstChild;
     if (rootChild !== null) {
         do {
-            const current = rootChild as UpdaterType<typeof item,Node>;
-            current.update = updater(item, current);
-            updater({}, current).call(current, item);
+            __toUpdatable(
+                item,
+                rootChild as UpdaterType<typeof item, typeof rootChild>
+            );
         } while ((rootChild = rootChild.nextSibling));
     }
 }
-export function __bindElement({...item},itemGroup:Element) {
-    itemGroup.update = updater(item, itemGroup);
-    updater({}, itemGroup).call(itemGroup, item);
+export function __bindElement({ ...item }, node: Element) {
+    __toUpdatable(item, node as UpdaterType<typeof item, typeof node>);
 }
-export function __bindVirtual({...item},itemGroup: VirtualBaseComponent<typeof item>) {
-    itemGroup.update = updater(
-        item,
-        itemGroup,
-        itemGroup.isUpdate,
-        itemGroup.onUpdate
-    );
-    updater({}, itemGroup, itemGroup.isUpdate, itemGroup.onUpdate).call(
-        itemGroup,
-        item
-    );
-}
+// export function __bindVirtual(
+//     { ...item },
+//     node: VirtualBaseComponent<typeof item>
+// ) {
+//     __toUpdatable(
+//         item,
+//         node as UpdaterType<typeof item, typeof node>,
+//         node.isUpdate,
+//         node.onUpdate
+//     );
+// }
 
 export const __invokeComponent = (item, component) => {
     let view = component(item);
@@ -109,8 +108,7 @@ export const __forceGenerateTags = (
     refCollector = [],
     renderer = parent instanceof HTMLElement ? reconcile : reuseNodes
 ) => {
-    /** @type {[hElement, object][]} */
-    const createdViews = [];
+    const createdViews: [hElement, object][] = [];
     if (
         !(
             parent instanceof HTMLElement ||

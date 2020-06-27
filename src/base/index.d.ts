@@ -6,16 +6,16 @@ declare class Ref {
     constructor(idx: number, ref: string | number);
 }
 type RefBase = { [K: string]: any };
-type RefType<T> = T extends RefBase ? T : {};
-type BaseLiteralElement<T> = {
+type RefType<T> = T extends RefBase ? T : RefBase;
+type BaseLiteralElement<Data, NodeLike extends Node> = {
     _refPaths?: Ref[];
     //collect start node needs optional
-    collect(node?: Node): RefType<T>;
+    collect(node?: NodeLike): RefType<Data>;
     compile(): void | never;
-};
+} & NodeLike;
 type InterpolationType = Transform<NonNullable<any>, "toString">;
-type hElement<RefType> = BaseLiteralElement<RefType> & HTMLElement;
-type fragmentElement<RefType> = BaseLiteralElement<RefType> & DocumentFragment;
+type hElement<RefType> = BaseLiteralElement<RefType, HTMLElement>;
+type fragmentElement<RefType> = BaseLiteralElement<RefType, DocumentFragment>;
 export type BaseAttribute<Extends, T = string> = {
     update(value: T): void;
 } & Extends;
