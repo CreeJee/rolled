@@ -1,10 +1,11 @@
-export function keyed(
-    key: string,
+export function keyed<Keys,T,OutTag extends HTMLElement>(
+    key: Exclude<Keys,string> extends never ? Keys : string,
     parent: HTMLElement,
-    renderedValues: any[],
-    data: any[],
-    createFn: (data: object, nth: number) => HTMLElement,
-    noOp?: (node: HTMLElement, item: object) => void,
-    beforeNode?: Node,
-    afterNode?: Node): void;
+    renderedValues: OutTag[],
+    data: T[],
+    createFn: (data: T, nth: number) => OutTag,
+    noOp?: (node: OutTag, item: T) => void,
+    beforeNode?: OutTag,
+    afterNode?: OutTag
+): void;
 export default keyed;

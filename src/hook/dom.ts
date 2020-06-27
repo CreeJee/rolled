@@ -1,14 +1,12 @@
 import {
-    hasHook,
-    getHook,
     LayoutGenError,
     VirtualBaseComponent,
 } from "./core.js";
 import {
     BaseLiteralElement,
     BaseAttribute,
-    RefObj,
     RefType,
+    RefBase,
 } from "../base/index.js";
 import { reconcile } from "../base/reconcile.js";
 import { classListNodeType } from "../base/index.js";
@@ -16,16 +14,21 @@ import { invokeEvent } from "../plugins/event.js";
 import { DomComponent } from "./legacy/_virtual.js";
 import reuseNodes from "../base/reuseNodes.js";
 import { valueOf, toString, Transform } from "../util.js";
+
+type UpdaterType<Data,NodeLike extends Node> = NodeLike & {
+    update: (old: RefType<Data>, view : BaseLiteralElement<NodeLike>) => void | undefined
+};
+
 const defaultUpdate = <T, NodeLike extends Node>(
     node: BaseAttribute<NodeLike, T>,
     current: Transform<T, "toString">,
-    key: string
+    k: keyof T
 ) => {
     switch (node.nodeType) {
         // case Node.ELEMENT_NODE:
         //     node.setAttribute(key, current);
         //     break;
-        case Node.TEXT_NODE:
+        case Node.TEXT_NODE: 
         case Node.ATTRIBUTE_NODE:
             node.nodeValue = toString(current);
             break;
@@ -36,7 +39,7 @@ const defaultUpdate = <T, NodeLike extends Node>(
             throw new LayoutGenError("unaccepted data");
     }
 };
-const noOpCond = <T>(current: T, before: T) => true;
+const noOpCond = <T>(current: T, old: T) => true;
 const updater = <
     T,
     ElementType extends BaseLiteralElement<T> = BaseLiteralElement<T>
@@ -60,38 +63,38 @@ const updater = <
         }
     };
 };
-export const __bindDom = ({ ...item }, itemGroup) => {
-    switch (itemGroup.nodeType) {
-        case Node.DOCUMENT_FRAGMENT_NODE:
-            let rootChild = itemGroup.firstChild;
-            if (rootChild !== null) {
-                do {
-                    rootChild.update = updater(item, rootChild);
-                    updater({}, rootChild).call(rootChild, item);
-                } while ((rootChild = rootChild.nextSibling));
-            }
-            break;
-        case Node.ELEMENT_NODE:
-            itemGroup.update = updater(item, itemGroup);
-            updater({}, itemGroup).call(itemGroup, item);
-            break;
-        case VirtualBaseComponent.nodeType:
-            itemGroup.update = updater(
-                item,
-                itemGroup,
-                itemGroup.isUpdate,
-                itemGroup.onUpdate
-            );
-            updater({}, itemGroup, itemGroup.isUpdate, itemGroup.onUpdate).call(
-                itemGroup,
-                item
-            );
-            break;
-        default:
-            throw new LayoutGenError("unacceptable nodes");
+const __toUpdatable = <NodeLike extends Node,Data>(data:Data,node: UpdaterType<Data,NodeL>) => {
+    const uNode = node as UpdaterType<Data,typeof node>;
+    uNode.update = updater<Data>(data as RefType<Data>,node);
+    return uNode
+}
+export function __bindFragment({...item}, itemGroup:DocumentFragment) {
+    let rootChild = itemGroup.firstChild;
+    if (rootChild !== null) {
+        do {
+            const current = rootChild as UpdaterType<typeof item,Node>;
+            current.update = updater(item, current);
+            updater({}, current).call(current, item);
+        } while ((rootChild = rootChild.nextSibling));
     }
-    return itemGroup;
-};
+}
+export function __bindElement({...item},itemGroup:Element) {
+    itemGroup.update = updater(item, itemGroup);
+    updater({}, itemGroup).call(itemGroup, item);
+}
+export function __bindVirtual({...item},itemGroup: VirtualBaseComponent<typeof item>) {
+    itemGroup.update = updater(
+        item,
+        itemGroup,
+        itemGroup.isUpdate,
+        itemGroup.onUpdate
+    );
+    updater({}, itemGroup, itemGroup.isUpdate, itemGroup.onUpdate).call(
+        itemGroup,
+        item
+    );
+}
+
 export const __invokeComponent = (item, component) => {
     let view = component(item);
     if (view instanceof Promise) {
@@ -159,7 +162,7 @@ export const __generateChildren = (parent, childs) => {
     let components = [];
     if (Array.isArray(childs)) {
         if (!("update" in parent)) {
-            parent.update = function (data) {
+            parent.update = function () {
                 __forceGenerateTags(parent, renderedItems, childs, components);
                 renderedItems = childs.slice();
             };

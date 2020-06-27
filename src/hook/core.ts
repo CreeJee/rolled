@@ -66,6 +66,7 @@ export class StateObject<T> {
     }
 }
 export class VirtualBaseComponent<PropTypes> {
+    #update = {};
     //impl
     onUpdate(_data: PropTypes) {
         throw new LayoutGenError("need [VirtualLayout.update]");
@@ -82,6 +83,9 @@ export class VirtualBaseComponent<PropTypes> {
     }
     static get nodeType() {
         return "VirtualComponent";
+    }
+    set update($updater) {
+        this.#update = $updater;
     }
 }
 

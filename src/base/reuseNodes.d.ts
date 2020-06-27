@@ -1,9 +1,10 @@
-export function reuseNodes(
+export function reuseNodes<T,OutTag extends HTMLElement>(
     parent: HTMLElement,
-    renderedValues: any[],
-    data: any[],
-    createFn: (data: object, nth: number) => HTMLElement,
-    noOp?: (node: HTMLElement, item: object) => void,
-    beforeNode?: Node,
-    afterNode?: Node): void;
+    renderedValues: OutTag[],
+    data: T[],
+    createFn: (data: T, nth: number) => OutTag,
+    noOp?: (node: OutTag, item: T) => void,
+    beforeNode?: OutTag,
+    afterNode?: OutTag
+): void;
 export default reuseNodes;

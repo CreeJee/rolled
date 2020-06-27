@@ -10,12 +10,11 @@ const __renderObserver = new MutationObserver((mutations) => {
         const { removedNodes } = mutation;
         if (removedNodes.length > 0) {
             for (let index = 0; index < removedNodes.length; index++) {
-                const node = removedNodes[index];
+                const node = removedNodes[index] as unknown as BaseLiteralElement<Node>;
                 if (hasHook(node)) {
                     invokeEvent(getHook(node), "unMount");
                 }
                 delete node.update;
-                // TODO : unMount ref logic from './index.js'
             }
         }
     }

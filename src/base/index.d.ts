@@ -6,10 +6,7 @@ declare class Ref {
     constructor(idx: number, ref: string | number);
 }
 type RefBase = { [K: string]: any };
-type RefType<T extends RefBase = RefBase> = T;
-// RefType은 비 결정적 임
-// 런타임에 html 파싱하니 이부분은 라이브러리 고유 결함임
-// 만약된다면 컴파일타임에 빌드 때리고 싶음
+type RefType<T> = T extends RefBase ? T : {};
 type BaseLiteralElement<T> = {
     _refPaths?: Ref[];
     //collect start node needs optional

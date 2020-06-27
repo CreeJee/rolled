@@ -84,7 +84,6 @@ export class Component<
     ParentComponent,
     ChildComponents extends IBaseComponent[]
 > extends BaseComponent<Props, ParentComponent, ChildComponents> {
-    private static mixins = [] as HookMixer<any,any>[];
 
     private static applyComponent<Static,Types extends HookMixer<any,any>[]>(
         component: InferComponent<Static>,
