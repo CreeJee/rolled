@@ -101,6 +101,7 @@ export const __invokeComponent = (item, component) => {
     }
     return view;
 };
+//render to component used functional components
 export const __forceGenerateTags = (
     parent,
     renderedItems,
@@ -124,7 +125,6 @@ export const __forceGenerateTags = (
         (hoc, nth) => {
             // const item = {};
             const view = __invokeComponent({}, hoc);
-            getHook(view).parent = getHook(parent);
             if (
                 !(
                     view instanceof HTMLElement ||
