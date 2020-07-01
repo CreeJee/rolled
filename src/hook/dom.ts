@@ -45,7 +45,6 @@ const updater = <T, ElementType extends Node>(
     isUpdate = noOpCond,
     onUpdate: typeof nodeDefaultUpdate
 ) => {
-    //needs bound self
     return function __nestedUpdate__(this: ElementType, item: RefType<T>) {
         const collectors = view.collect();
         for (const key in collectors) {
